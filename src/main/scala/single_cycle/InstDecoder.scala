@@ -18,15 +18,14 @@ class InstDecoder extends Module {
     io.rs2 := inst(24, 20)
 
     private val opcode = inst(6, 0)
-    // (addi, xori, ori, andi, slli, srli, srai, slti, sltiu),
-    // (lb, lh, lw, lbu, lhu), (jalr), (ecall, ebreak)
-    private val is_I = opcode === "b0010011".U ||
-        opcode === "b0000011".U || opcode === "b1100111".U || opcode === "b1110011".U
-    private val is_S = opcode === "b0100011".U  // sb, sh, sw
-    private val is_B = opcode === "b1100011".U  // beq, bne, blt, bge, bltu, bgeu
-    private val is_U = opcode === "b0110111".U  // lui, auipc
-    private val is_J = opcode === "b1101111".U  // jal
-    private val is_R = opcode === "b0110011".U  // add, sub, xor, or, and, sll, srl, sra, slt, sltu
+
+    private val is_I = opcode === Opcodes.ARITH_IMM ||
+        opcode === Opcodes.LOAD || opcode === Opcodes.JALR || opcode === Opcodes.SYSTEM
+    private val is_S = opcode === Opcodes.STORE
+    private val is_B = opcode === Opcodes.BRANCH
+    private val is_U = opcode === Opcodes.LUI || opcode === Opcodes.AUIPC
+    private val is_J = opcode === Opcodes.JAL
+    private val is_R = opcode === Opcodes.ARITH
 
     when (is_I) {
         io.imm := signExtend(32, inst(31, 20))
@@ -44,8 +43,25 @@ class InstDecoder extends Module {
     } .otherwise {
         io.imm := 0.S(32.W)
     }
+}
 
-
+object Opcodes {
+    /** add, sub, xor, or, and, sll, srl, sra, slt, sltu */
+    final val ARITH      = "b0110011".U
+    /** addi, xori, ori, andi, slli, srli, srai, slti, sltiu */
+    final val ARITH_IMM  = "b0010011".U
+    /** beq, bne, blt, bge, bltu, bgeu */
+    final val BRANCH     = "b1100011".U
+    /** lb, lh, lw, lbu, lhu */
+    final val LOAD       = "b0000011".U
+    /** sb, sh, sw */
+    final val STORE      = "b0100011".U
+    final val LUI        = "b0110111".U
+    final val AUIPC      = "b0010111".U
+    final val JAL        = "b1101111".U
+    final val JALR       = "b1100111".U
+    /** ecall, ebreak */
+    final val SYSTEM     = "b1110011".U
 }
 
 

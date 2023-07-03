@@ -40,12 +40,13 @@ class ALU extends Module {
 }
 
 object ALUOps {
-    val ADD: UInt = 0.U(3.W)
-    val SUB: UInt = 1.U(3.W)
-    val AND: UInt = 2.U(3.W)
-    val OR : UInt = 3.U(3.W)
-    val XOR: UInt = 4.U(3.W)
-    val SLL: UInt = 5.U(3.W)
-    val SRL: UInt = 6.U(3.W)
-    val SRA: UInt = 7.U(3.W)
+    final val dataT = UInt(3.W)
+    final val ADD: UInt = 0.U(3.W)
+    final val SUB: UInt = 1.U(3.W)
+    final val AND: UInt = 2.U(3.W)
+    final val OR : UInt = 3.U(3.W)
+    final val XOR: UInt = 4.U(3.W)
+    final val SLL: UInt = 5.U(3.W)
+    final val SRL: UInt = 6.U(3.W)
+    final val SRA: UInt = 7.U(3.W)
 }
