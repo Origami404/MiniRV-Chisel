@@ -3,21 +3,18 @@ package single_cycle
 import Chisel._
 
 class ALU extends Module {
-    val in = IO(Input(new Bundle {
-        val op = ALUOps.dataT
-        val arg_1 = DataT.SWord
-        val arg_2 = DataT.SWord
-    }))
+    val io = IO(new Bundle {
+        val op      = Input(ALUOps.dataT)
+        val arg_1   = Input(DataT.SWord)
+        val arg_2   = Input(DataT.SWord)
+        val result  = Output(DataT.SWord)
+        val zero    = Output(Bool())
+        val neg     = Output(Bool())
+    })
 
-    val out = IO(Output(new Bundle {
-        val result = DataT.SWord
-        val zero = Bool()
-        val neg = Bool()
-    }))
-
-    private val op = in.op
-    private val lhs = in.arg_1
-    private val rhs = in.arg_2
+    private val op = io.op
+    private val lhs = io.arg_1
+    private val rhs = io.arg_2
 
     private val res = Wire(DataT.SWord)
     when (op === ALUOps.AND) {
@@ -36,8 +33,8 @@ class ALU extends Module {
         res := lhs + rhs
     }
 
-    out.result  := res
-    out.zero    := res === 0.S
-    out.neg     := res(31).asBool
+    io.result  := res
+    io.zero    := res === 0.S
+    io.neg     := res(31).asBool
 }
 
