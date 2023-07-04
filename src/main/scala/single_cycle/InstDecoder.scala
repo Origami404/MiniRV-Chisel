@@ -5,14 +5,14 @@ import single_cycle.Utils.signExtend
 
 class InstDecoder extends Module {
     val in = IO(Input(new Bundle {
-        val inst = UInt(32.W)
+        val inst = DataT.Inst
     }))
 
     val out = IO(Output(new Bundle {
-        val rd = UInt(5.W)
-        val rs1 = UInt(5.W)
-        val rs2 = UInt(5.W)
-        val imm = SInt(32.W)
+        val rd = DataT.RegNo
+        val rs1 = DataT.RegNo
+        val rs2 = DataT.RegNo
+        val imm = DataT.SWord
     }))
 
     private val inst = in.inst

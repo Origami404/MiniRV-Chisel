@@ -4,7 +4,7 @@ import Chisel._
 
 class Control extends Module {
     val io = IO(new Bundle {
-        val inst = Input(UInt(32.W))
+        val inst = Input(DataT.Inst)
         val alu_sel = Output(ALUOps.dataT)
         val pc_sel = Output(Controls.pc_sel.dataT)
         val lhs_sel = Output(Controls.lhs_sel.dataT)

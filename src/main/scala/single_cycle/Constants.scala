@@ -2,6 +2,15 @@ package single_cycle
 
 import Chisel._
 
+object DataT {
+    final val Inst = UInt(32.W)
+    final val Addr = UInt(32.W)
+    final val RegNo = UInt(5.W)
+
+    final val UWord = UInt(32.W)
+    final val SWord = SInt(32.W)
+}
+
 object Opcodes {
     /** add, sub, xor, or, and, sll, srl, sra, slt, sltu */
     final val ARITH      = "b0110011".U
