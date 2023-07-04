@@ -3,20 +3,23 @@ package single_cycle
 import Chisel._
 
 class ALU extends Module {
-    val io = IO(new Bundle {
-        val op = Input(UInt(3.W))
-        val arg_1 = Input(SInt(32.W))
-        val arg_2 = Input(SInt(32.W))
-        val result = Output(SInt(32.W))
-        val zero = Output(Bool())
-        val neg = Output(Bool())
-    })
+    val in = IO(Input(new Bundle {
+        val op = UInt(3.W)
+        val arg_1 = SInt(32.W)
+        val arg_2 = SInt(32.W)
+    }))
 
-    private val op = io.op
-    private val lhs = io.arg_1
-    private val rhs = io.arg_2
-    private val res = io.result
+    val out = IO(Output(new Bundle {
+        val result = SInt(32.W)
+        val zero = Bool()
+        val neg = Bool()
+    }))
 
+    private val op = in.op
+    private val lhs = in.arg_1
+    private val rhs = in.arg_2
+
+    private val res = Wire(SInt(32.W))
     when (op === ALUOps.AND) {
         res := lhs & rhs
     } .elsewhen (op === ALUOps.OR) {
@@ -35,18 +38,8 @@ class ALU extends Module {
         res := lhs + real_rhs
     }
 
-    io.zero := res === 0.S
-    io.neg := res(31).asBool
+    out.result  := res
+    out.zero    := res === 0.S
+    out.neg     := res(31).asBool
 }
 
-object ALUOps {
-    final val dataT = UInt(3.W)
-    final val ADD: UInt = 0.U(3.W)
-    final val SUB: UInt = 1.U(3.W)
-    final val AND: UInt = 2.U(3.W)
-    final val OR : UInt = 3.U(3.W)
-    final val XOR: UInt = 4.U(3.W)
-    final val SLL: UInt = 5.U(3.W)
-    final val SRL: UInt = 6.U(3.W)
-    final val SRA: UInt = 7.U(3.W)
-}
