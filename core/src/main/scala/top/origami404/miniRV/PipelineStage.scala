@@ -1,6 +1,7 @@
-package single_cycle
+package top.origami404.miniRV
 
 import Chisel._
+import top.origami404.miniRV.DataT
 
 
 

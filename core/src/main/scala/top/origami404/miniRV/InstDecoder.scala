@@ -1,7 +1,9 @@
-package single_cycle
+package top.origami404.miniRV
 
 import Chisel._
-import single_cycle.Utils.signExtend
+import top.origami404.miniRV.utils.F.signExtend
+import top.origami404.miniRV.{DataT, Opcodes}
+import top.origami404.miniRV.utils.F
 
 class InstDecoder extends Module {
     val io = IO(new Bundle {

@@ -1,7 +1,13 @@
-package single_cycle
+package top.origami404.miniRV
 
 import Chisel._
-import utils.M
+import top.origami404.miniRV.utils.M
+import top.origami404.miniRV.{DataT, Controls}
+import top.origami404.miniRV.Control
+import top.origami404.miniRV.InstDecoder
+import top.origami404.miniRV.IF_ID
+import top.origami404.miniRV.RegFile
+import top.origami404.miniRV.{InstRAMBundle, BusBundle, DebugBundle}
 
 class CPUCore extends Module {
     val io = IO(new Bundle {
@@ -43,14 +49,14 @@ class CPUCore extends Module {
     val lhs = Wire(DataT.SWord)
     M.mux(lhs, 0.S, CTL.io.lhs_sel,
         Controls.lhs_sel.zero -> 0.S,
-        Controls.lhs_sel.pc -> stage_if_id.io.out.pc,
-        Controls.lhs_sel.rs1 -> reg_file.io.read_data_1
+        Controls.lhs_sel.pc -> stage_if_id.io.out.pc.asSInt,
+        Controls.lhs_sel.rs1 -> reg_file.io.read_data_1.asSInt
     )
 
     val rhs_raw = Wire(DataT.SWord)
     M.mux(rhs_raw, 0.S, CTL.io.rhs_sel, 
-        Controls.rhs_sel.rs2 -> reg_file.io.read_data_2,
-        Controls.rhs_sel.imm -> inst_decorer.io.imm
+        Controls.rhs_sel.rs2 -> reg_file.io.read_data_2.asSInt,
+        Controls.rhs_sel.imm -> inst_decorer.io.imm.asSInt
     )
 
     val rhs = Wire(DataT.SWord)

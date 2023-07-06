@@ -1,8 +1,8 @@
-package single_cycle
+package top.origami404.miniRV.utils
 
 import Chisel._
 
-object Utils {
+object F {
     def signExtend(target_width: Int, source: UInt): SInt = {
         val source_width = source.getWidth
         if (target_width < source_width) {

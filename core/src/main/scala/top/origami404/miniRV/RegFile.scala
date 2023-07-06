@@ -1,4 +1,4 @@
-package single_cycle
+package top.origami404.miniRV
 
 import Chisel._
 import chisel3.util.ValidIO

@@ -1,4 +1,4 @@
-package utils
+package top.origami404.miniRV.utils
 
 import Chisel.Data
 

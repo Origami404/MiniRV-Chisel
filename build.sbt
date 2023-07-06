@@ -35,3 +35,4 @@ lazy val macroSub = (project in file("macro"))
         libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value
     )
 
+mainClass in (Compile, run) := Some("top.origami404.miniRV.utils.Main")

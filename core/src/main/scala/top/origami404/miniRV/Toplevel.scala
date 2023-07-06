@@ -1,4 +1,4 @@
-package single_cycle
+package top.origami404.miniRV
 
 import chisel3._
 import chisel3.experimental.FlatIO
