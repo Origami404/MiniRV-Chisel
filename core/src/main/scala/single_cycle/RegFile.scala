@@ -1,4 +1,4 @@
-package siogle_cycle
+package single_cycle
 
 import Chisel._
 import chisel3.util.ValidIO
