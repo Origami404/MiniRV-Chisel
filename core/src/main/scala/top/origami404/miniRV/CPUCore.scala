@@ -8,6 +8,7 @@ import top.origami404.miniRV.InstDecoder
 import top.origami404.miniRV.IF_ID
 import top.origami404.miniRV.RegFile
 import top.origami404.miniRV.{InstRAMBundle, BusBundle, DebugBundle}
+import top.origami404.miniRV.utils.F
 
 class CPUCore extends Module {
     val io = IO(new Bundle {
@@ -46,22 +47,22 @@ class CPUCore extends Module {
     reg_file.io.read_addr_1 := inst_decorer.io.rs1
     reg_file.io.read_addr_2 := inst_decorer.io.rs2
     
-    val lhs = Wire(DataT.SWord)
-    M.mux(lhs, 0.S, CTL.io.lhs_sel,
-        Controls.lhs_sel.zero -> 0.S,
-        Controls.lhs_sel.pc -> stage_if_id.io.out.pc.asSInt,
-        Controls.lhs_sel.rs1 -> reg_file.io.read_data_1.asSInt
+    val lhs = Wire(DataT.Word)
+    M.mux(lhs, 0.U, CTL.io.lhs_sel,
+        Controls.lhs_sel.zero -> 0.U,
+        Controls.lhs_sel.pc -> stage_if_id.io.out.pc,
+        Controls.lhs_sel.rs1 -> reg_file.io.read_data_1
     )
 
-    val rhs_raw = Wire(DataT.SWord)
-    M.mux(rhs_raw, 0.S, CTL.io.rhs_sel, 
-        Controls.rhs_sel.rs2 -> reg_file.io.read_data_2.asSInt,
-        Controls.rhs_sel.imm -> inst_decorer.io.imm.asSInt
+    val rhs_raw = Wire(DataT.Word)
+    M.mux(rhs_raw, 0.U, CTL.io.rhs_sel, 
+        Controls.rhs_sel.rs2 -> reg_file.io.read_data_2,
+        Controls.rhs_sel.imm -> inst_decorer.io.imm
     )
 
-    val rhs = Wire(DataT.SWord)
-    M.mux(rhs, 0.S, CTL.io.rhs_neg,
-        Controls.rhs_neg.yes -> -rhs_raw,
+    val rhs = Wire(DataT.Word)
+    M.mux(rhs, 0.U, CTL.io.rhs_neg,
+        Controls.rhs_neg.yes -> F.tcNeg(rhs_raw),
         Controls.rhs_neg.no -> rhs_raw
     )
 

@@ -6,9 +6,7 @@ object DataT {
     final val Inst = UInt(32.W)
     final val Addr = UInt(32.W)
     final val RegNo = UInt(5.W)
-
-    final val UWord = UInt(32.W)
-    final val SWord = SInt(32.W)
+    final val Word = UInt(32.W)
 }
 
 object Opcodes {

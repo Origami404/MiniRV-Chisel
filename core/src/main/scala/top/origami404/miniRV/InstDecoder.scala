@@ -11,7 +11,7 @@ class InstDecoder extends Module {
         val rd      = Output(DataT.RegNo)
         val rs1     = Output(DataT.RegNo)
         val rs2     = Output(DataT.RegNo)
-        val imm     = Output(DataT.SWord)
+        val imm     = Output(DataT.Word)
     })
 
     private val inst = io.inst
@@ -36,14 +36,14 @@ class InstDecoder extends Module {
     } .elsewhen (is_B) {
         io.imm := signExtend(32, Cat(inst(31, 25), inst(11, 7), 0.U(1.W)))
     } .elsewhen (is_U) {
-        io.imm := Cat(inst(31, 12), 0.U(12.W)).asSInt
+        io.imm := Cat(inst(31, 12), 0.U(12.W))
     } .elsewhen (is_J) {
         // 太恐怖了，加个 assert
         val bits = Cat(0.U(11.W), inst(31, 31), inst(19, 12), inst(20, 20), inst(30, 21), 0.U(1.W))
         assert(bits.getWidth == 32)
-        io.imm := bits.asSInt
+        io.imm := bits
     } .otherwise {
-        io.imm := 0.S(32.W)
+        io.imm := 0.U(32.W)
     }
 }
 
