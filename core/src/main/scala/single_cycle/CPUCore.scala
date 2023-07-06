@@ -18,8 +18,7 @@ class CPUCore extends Module {
     val pc_next = pc + 4.U
 
     private val pc_offset = Wire(DataT.Addr)
-    private val pc_sel = CTL.io.pc_sel
-    M.mux(pc_offset, 0.U, pc_sel,
+    M.mux(pc_offset, 0.U, CTL.io.pc_sel,
         Controls.pc_sel.next -> pc_next,
         Controls.pc_sel.alu -> 1.U,
         Controls.pc_sel.imm -> 2.U,
@@ -31,6 +30,34 @@ class CPUCore extends Module {
 
     // =============== ID ===============
     val stage_if_id = Module(new IF_ID)
+    stage_if_id.io.in.inst := io.inst_rom.inst
+    stage_if_id.io.in.pc := pc
+
+    val inst_decorer = Module(new InstDecoder)
+    inst_decorer.io.inst := stage_if_id.io.out.inst
+
+    val reg_file = Module(new RegFile)
+    reg_file.io.read_addr_1 := inst_decorer.io.rs1
+    reg_file.io.read_addr_2 := inst_decorer.io.rs2
+    
+    val lhs = Wire(DataT.SWord)
+    M.mux(lhs, 0.S, CTL.io.lhs_sel,
+        Controls.lhs_sel.zero -> 0.S,
+        Controls.lhs_sel.pc -> stage_if_id.io.out.pc,
+        Controls.lhs_sel.rs1 -> reg_file.io.read_data_1
+    )
+
+    val rhs_raw = Wire(DataT.SWord)
+    M.mux(rhs_raw, 0.S, CTL.io.rhs_sel, 
+        Controls.rhs_sel.rs2 -> reg_file.io.read_data_2,
+        Controls.rhs_sel.imm -> inst_decorer.io.imm
+    )
+
+    val rhs = Wire(DataT.SWord)
+    M.mux(rhs, 0.S, CTL.io.rhs_neg,
+        Controls.rhs_neg.yes -> -rhs_raw,
+        Controls.rhs_neg.no -> rhs_raw
+    )
 
     // ============== EXE ===============
     val stage_id_exe = 0
