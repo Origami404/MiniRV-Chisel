@@ -28,66 +28,63 @@ object Opcodes {
     final val SYSTEM     = "b1110011".U
 }
 
-object ALUOps {
-    final val dataT = UInt(3.W)
-    final val ADD: UInt = 0.U(3.W)
-    final val SUB: UInt = 1.U(3.W)
-    final val AND: UInt = 2.U(3.W)
-    final val OR : UInt = 3.U(3.W)
-    final val XOR: UInt = 4.U(3.W)
-    final val SLL: UInt = 5.U(3.W)
-    final val SRL: UInt = 6.U(3.W)
-    final val SRA: UInt = 7.U(3.W)
+class EnumWithWidth(width: Int) {
+    protected val w = width.W
+    final val dataT = UInt(w)
+}
+
+object ALUOps extends EnumWithWidth(3) {
+    final val ADD: UInt = 0.U(w)
+    final val SUB: UInt = 1.U(w)
+    final val AND: UInt = 2.U(w)
+    final val OR : UInt = 3.U(w)
+    final val XOR: UInt = 4.U(w)
+    final val SLL: UInt = 5.U(w)
+    final val SRL: UInt = 6.U(w)
+    final val SRA: UInt = 7.U(w)
 }
 
 object Controls {
     /** where pc_offset comes from */
-    final object pc_sel {
-        final val dataT = UInt(2.W)
+    final object pc_sel extends EnumWithWidth(2) {
         /** just +4 */
-        final val next  = 0.U(2.W)
+        final val next  = 0.U(w)
         /** from imm in instruction */
-        final val imm   = 1.U(2.W)
+        final val imm   = 1.U(w)
         /** from alu result */
-        final val alu   = 2.U(2.W)
+        final val alu   = 2.U(w)
     }
     /** where ALU lhs argument comes from */
-    final object lhs_sel {
-        final val dataT = UInt(2.W)
-        final val rs1   = 0.U(2.W)
-        final val pc    = 1.U(2.W)
-        final val zero  = 2.U(2.W)
+    final object lhs_sel extends EnumWithWidth(2) {
+        final val rs1   = 0.U(w)
+        final val pc    = 1.U(w)
+        final val zero  = 2.U(w)
     }
     /** where ALU rhs argument comes from */
-    final object rhs_sel {
-        final val dataT = Bool()
-        final val rs2   = true.B
-        final val imm   = false.B
+    final object rhs_sel extends EnumWithWidth(1) {
+        final val rs2   = 0.U(w)
+        final val imm   = 1.U(w)
     }
     /** whether ALU rhs should be negative first */
-    final object rhs_neg {
-        final val dataT = Bool()
-        final val yes   = true.B
-        final val no    = false.B
+    final object rhs_neg extends EnumWithWidth(1) {
+        final val yes   = 0.U(w)
+        final val no    = 1.U(w)
     }
     /** whether ALU result should write back to RegFile */
-    final object rfw_en {
-        final val dataT = Bool()
-        final val yes   = true.B
-        final val no    = false.B
+    final object rfw_en extends EnumWithWidth(1) {
+        final val yes   = 0.U(w)
+        final val no    = 1.U(w)
     }
     /** where RegFile write data comes from */
-    final object rfw_sel {
-        final val dataT         = UInt(2.W)
-        final val alu_result    = 0.U(2.W)
-        final val alu_neg_flag  = 1.U(2.W)
-        final val memory        = 2.U(2.W)
-        final val pc_next       = 3.U(2.W)
+    final object rfw_sel extends EnumWithWidth(2) {
+        final val alu_result    = 0.U(w)
+        final val alu_neg_flag  = 1.U(w)
+        final val memory        = 2.U(w)
+        final val pc_next       = 3.U(w)
     }
     /** whether we should write memory */
-    final object memw_en {
-        final val dataT = Bool()
-        final val yes   = true.B
-        final val no    = false.B
+    final object memw_en extends EnumWithWidth(1) {
+        final val yes   = 0.U(w)
+        final val no    = 1.U(w)
     }
 }
