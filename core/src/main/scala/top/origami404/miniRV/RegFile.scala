@@ -15,12 +15,30 @@ class RegFile extends Module {
 
     private val reg_file = Mem(32, UInt(32.W))
 
-    io.read_data_1 := Mux(io.read_addr_1 === 0.U, 0.U, reg_file(io.read_addr_1))
-    io.read_data_2 := Mux(io.read_addr_2 === 0.U, 0.U, reg_file(io.read_addr_2))
-
     private val write_addr = io.write_addr.bits
     private val write_enable = io.write_addr.valid && write_addr =/= 0.U
+    private val write_data = io.write_data
     when (write_enable) {
-        reg_file(write_addr) := io.write_data
+        reg_file(write_addr) := write_data
+    }
+
+    private val ra1 = io.read_addr_1
+    private val rd1 = io.read_data_1
+    when (ra1 === 0.U) {
+        rd1 := 0.U
+    } .elsewhen (write_enable & (ra1 === write_addr)) {
+        rd1 := write_data
+    } .otherwise {
+        rd1 := reg_file(ra1)
+    }
+
+    private val ra2 = io.read_addr_2
+    private val rd2 = io.read_data_2
+    when (ra2 === 0.U) {
+        rd2 := 0.U
+    } .elsewhen (write_enable & (ra2 === write_addr)) {
+        rd2 := write_data
+    } .otherwise {
+        rd2 := reg_file(ra2)
     }
 }
