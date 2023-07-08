@@ -4,6 +4,7 @@ import Chisel._
 import chisel3.util.ValidIO
 import top.origami404.miniRV.{T, ALUOps}
 import top.origami404.miniRV.utils.F
+import top.origami404.miniRV.utils.M
 
 class InstDecoder extends Module {
     val io = IO(new Bundle {
@@ -132,3 +133,26 @@ class ALU extends Module {
     io.neg     := res(31).asBool
 }
 
+class BRU extends Module {
+    val io = IO(new Bundle {
+        val op = Input(BRUOps.dataT)
+        val zero = Input(Bool())
+        val neg = Input(Bool())
+        val should_br = Output(Bool())
+    })
+
+    val zero = io.zero
+    val not_zero = !io.zero
+    val neg = io.neg
+    val not_neg = !io.neg
+
+    import BRUOps._
+    M.mux(io.should_br, false.B, io.op, 
+        EQ -> zero,
+        NE -> not_zero,
+        GE -> not_neg,
+        GT -> (not_neg & not_zero),
+        LE -> (neg | zero),
+        LT -> neg
+    )
+}

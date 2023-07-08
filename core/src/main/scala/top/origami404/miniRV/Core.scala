@@ -99,7 +99,11 @@ class IF_ID extends Module {
     io.out := reg
 }
 
-class ID_HZD_Bundle {
+/** 
+ * rs1/rs2 info directly from ID, available in current cycle,
+ * needed by both hazard & forward module.
+ */
+class ID_RSN_Bundle extends Bundle {
     val rs1 = Output(T.RegNo)
     val rs2 = Output(T.RegNo)
 }
@@ -112,7 +116,7 @@ class ID extends Module {
         val ctl_exe = Flipped(new CTL_EXE_Bundle)
         val ctl_mem = Flipped(new CTL_MEM_Bundle)
         val ctl_wb = Flipped(new CTL_WB_Bundle)
-        val hzd = new ID_HZD_Bundle
+        val rsn = new ID_RSN_Bundle
     })
 
     private val decoder = Module(new InstDecoder)
@@ -131,8 +135,8 @@ class ID extends Module {
     io.out.ctl_mem := io.ctl_mem
     io.out.ctl_wb := io.ctl_wb
 
-    io.hzd.rs1 := decoder.io.rs1
-    io.hzd.rs2 := decoder.io.rs2
+    io.rsn.rs1 := decoder.io.rs1
+    io.rsn.rs2 := decoder.io.rs2
 }
 
 class ID_EXE extends Module {

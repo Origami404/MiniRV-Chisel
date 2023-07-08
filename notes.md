@@ -310,7 +310,7 @@ when (io.pipe.next_nop) {
 
 1. ID/EXE 中的 rd 是否与 ID 阶段的 rs1/rs2 相同, 如果相同则前递 EXE 中的 alu_result
 2. EXE/MEM 中的 rd 是否与 ID 阶段的 rs1/rs2 相同, 如果相同:
-   1. 当前指令是否为 ld, 如果是, 则前递 MEM 中的 memr_data
+   1. EXE/MEM 中的当前指令是否为 ld, 如果是, 则前递 MEM 中的 memr_data
    2. 否则, 前递 EXE/MEM 中的 alu_result
 3. 否则, 从 RF 中获取 rs1/rs2 
 

@@ -34,6 +34,15 @@ class EnumWithWidth(width: Int) {
     final val dataT = UInt(w)
 }
 
+object BRUOps extends EnumWithWidth(3) {
+    final var EQ = 0.U(w)
+    final var NE = 1.U(w)
+    final var GE = 2.U(w)
+    final var GT = 3.U(w)
+    final var LE = 4.U(w)
+    final var LT = 5.U(w)
+}
+
 object ALUOps extends EnumWithWidth(3) {
     final val ADD: UInt = 0.U(w)
     final val SUB: UInt = 1.U(w)

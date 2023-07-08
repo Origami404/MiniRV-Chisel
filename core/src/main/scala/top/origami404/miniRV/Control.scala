@@ -3,7 +3,6 @@ package top.origami404.miniRV
 import Chisel._
 import top.origami404.miniRV.{T, Opcodes, ALUOps, C}
 import top.origami404.miniRV.utils.F
-import chisel3.internal.prefix
 
 class CTL_PC_Bundle extends Bundle {
     val npc_base_sel = Output(C.npc_base_sel.dataT)
@@ -235,4 +234,64 @@ class BranchPred extends Module {
     // fail recover
     io.need_recover := pred_fail
     io.pc_recover := rc_2.recover_pc
+}
+
+class Forwarder extends Module {
+    val io = IO(new Bundle {
+        val id_rsn = Flipped(new ID_RSN_Bundle)
+
+        val id_exe_rd = Input(T.RegNo)
+        val exe_alu_result = Input(T.RegNo)
+
+        val exe_mem_is_load = Input(Bool())
+        val exe_mem_rd = Input(T.RegNo)
+        val exe_mem_alu_result = Input(T.RegNo)
+        val mem_memr_data = Input(T.RegNo)
+
+        val out = new FWD_EXE_Bundle
+    })
+
+    // port alias
+    val rs1 = io.id_rsn.rs1
+    val rs2 = io.id_rsn.rs2
+
+    val exe_rd = io.id_exe_rd
+    val mem_rd = io.exe_mem_rd
+    val mem_is_load = io.exe_mem_is_load
+    
+    val exe_alu = io.exe_alu_result
+    val mem_alu = io.exe_mem_alu_result
+    val mem_read = io.mem_memr_data
+
+    val fwd_1 = io.out.reg_rs1
+    val fwd_2 = io.out.reg_rs2
+
+    // logic
+    when (exe_rd === rs1) {
+        fwd_1.valid := true.B
+        fwd_1.bits := exe_alu
+    } .elsewhen (mem_rd === rs1) {
+        fwd_1.valid := true.B
+        fwd_1.bits := Mux(mem_is_load, mem_read, mem_alu)
+    } .otherwise {
+        fwd_1.valid := false.B
+        fwd_1.bits := 0.U
+    }
+
+    when (exe_rd === rs2) {
+        fwd_2.valid := true.B
+        fwd_2.bits := exe_alu
+    } .elsewhen (mem_rd === rs2) {
+        fwd_2.valid := true.B
+        fwd_2.bits := Mux(mem_is_load, mem_read, mem_alu)
+    } .otherwise {
+        fwd_2.valid := false.B
+        fwd_2.bits := 0.U
+    }
+}
+
+class Hazard extends Module {
+    val io = IO(new Bundle {
+
+    })
 }
