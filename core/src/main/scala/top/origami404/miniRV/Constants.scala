@@ -67,13 +67,13 @@ object Controls {
     }
     /** whether ALU rhs should be negative first */
     final object rhs_neg extends EnumWithWidth(1) {
-        final val yes   = 0.U(w)
-        final val no    = 1.U(w)
+        final val no    = 0.U(w)
+        final val yes   = 1.U(w)
     }
     /** whether ALU result should write back to RegFile */
     final object rfw_en extends EnumWithWidth(1) {
-        final val yes   = 0.U(w)
-        final val no    = 1.U(w)
+        final val no    = 0.U(w)
+        final val yes   = 1.U(w)
     }
     /** where RegFile write data comes from */
     final object rfw_sel extends EnumWithWidth(2) {
@@ -84,7 +84,7 @@ object Controls {
     }
     /** whether we should write memory */
     final object memw_en extends EnumWithWidth(1) {
-        final val yes   = 0.U(w)
-        final val no    = 1.U(w)
+        final val no    = 0.U(w)
+        final val yes   = 1.U(w)
     }
 }
