@@ -1,8 +1,9 @@
 package top.origami404.miniRV
 
 import Chisel._
+import chisel3.experimental.BundleLiterals._
 
-object DataT {
+object T {
     final val Inst = UInt(32.W)
     final val Addr = UInt(32.W)
     final val RegNo = UInt(5.W)
@@ -44,15 +45,22 @@ object ALUOps extends EnumWithWidth(3) {
     final val SRA: UInt = 7.U(w)
 }
 
-object Controls {
-    /** where pc_offset comes from */
-    final object pc_sel extends EnumWithWidth(2) {
+object C {
+    /** where npc_offset comes from */
+    final object npc_offset_sel extends EnumWithWidth(2) {
         /** just +4 */
         final val next  = 0.U(w)
         /** from imm in instruction */
         final val imm   = 1.U(w)
         /** from alu result */
         final val alu   = 2.U(w)
+    }
+    /** where npc_base comes from */
+    final object npc_base_sel extends EnumWithWidth(1) {
+        /** from pc, normally */
+        final val pc = 0.U(w)
+        /** from rs1 in RF, for jalr */
+        final val rs1 = 1.U(w)
     }
     /** where ALU lhs argument comes from */
     final object lhs_sel extends EnumWithWidth(2) {
@@ -87,4 +95,15 @@ object Controls {
         final val no    = 0.U(w)
         final val yes   = 1.U(w)
     }
+}
+
+object Inits {
+    final val pc = 0.U(T.Addr.getWidth)
+    final val ctl_mem_nop = (new CTL_MEM_Bundle).Lit(
+        _.memw_en -> C.memw_en.no,
+    )
+    final val ctl_wb_nop = (new CTL_WB_Bundle).Lit(
+        _.rfw_en -> C.rfw_en.no,
+        _.rfw_sel -> C.rfw_sel.alu_result
+    )
 }

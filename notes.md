@@ -160,8 +160,7 @@ jalr: rd = PC+4; PC = rs1 + imm
 | 2* | T1  | E1  |%jal |     |     | 420|
 | 3* | T2  | T1  | nop | jal |     | 424|
 
-当我们在在 ID 检测到 jal 时, 就拉高 ID/EXE 的 next_nop. 
-(它会使其下周期产生 nop, 分支预测也需要该功能, 具体实现下文会讲)
+当我们在在 ID/EXE 检测到 jal 时, 就拉高 ID/EXE 的 nop. 
 
 之所以不是要求 IF/ID 进行 nop, 
 主要是考虑到如果同一个流水线寄存器既要能产生 nop 又要能保持当前值, 
@@ -317,7 +316,7 @@ when (io.pipe.next_nop) {
 
 停顿与 nop 的逻辑如下:
 
-- `stall`: (ID/EXE 的 is_ld) 且 (rd 与 ID 阶段的 rs1 或 rs2 相同)
+- `stall`: (ID/EXE 的 is_ld) 且 (ID/EXE.rd 与 ID 阶段的 rs1 或 rs2 相同)
 - nop: stall 或 分支预测错误
-- next_nop: (ID 检测到 jal/jalr) 或 分支预测跳转
+- next_nop: (ID/EXE 检测到 jal/jalr) 或 分支预测跳转
 

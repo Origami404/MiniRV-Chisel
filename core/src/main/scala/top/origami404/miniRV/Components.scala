@@ -2,16 +2,16 @@ package top.origami404.miniRV
 
 import Chisel._
 import chisel3.util.ValidIO
-import top.origami404.miniRV.{DataT, ALUOps}
+import top.origami404.miniRV.{T, ALUOps}
 import top.origami404.miniRV.utils.F
 
 class InstDecoder extends Module {
     val io = IO(new Bundle {
-        val inst    = Input(DataT.Inst)
-        val rd      = Output(DataT.RegNo)
-        val rs1     = Output(DataT.RegNo)
-        val rs2     = Output(DataT.RegNo)
-        val imm     = Output(DataT.Word)
+        val inst    = Input(T.Inst)
+        val rd      = Output(T.RegNo)
+        val rs1     = Output(T.RegNo)
+        val rs2     = Output(T.RegNo)
+        val imm     = Output(T.Word)
     })
 
     private val inst = io.inst
@@ -47,28 +47,36 @@ class InstDecoder extends Module {
     }
 }
 
+class RF_Read_Bundle extends Bundle {
+    val addr_1 = Input(T.RegNo)
+    val addr_2 = Input(T.RegNo)
+    val data_1 = Output(T.Word)
+    val data_2 = Output(T.Word)
+}
+
+class RF_Write_Bundle extends Bundle {
+    val enable = Input(Bool())
+    val addr = Input(T.RegNo)
+    val data = Input(T.Word)
+}
 
 class RegFile extends Module {
     val io = IO(new Bundle {
-        val read_addr_1 = Input(UInt(5.W))
-        val read_addr_2 = Input(UInt(5.W))
-        val write_addr  = Input(ValidIO(UInt(5.W)))
-        val write_data  = Input(UInt(32.W))
-        val read_data_1 = Output(UInt(32.W))
-        val read_data_2 = Output(UInt(32.W))
+        val r = new RF_Read_Bundle
+        val w = new RF_Write_Bundle
     })
 
     private val reg_file = Mem(32, UInt(32.W))
 
-    private val write_addr = io.write_addr.bits
-    private val write_enable = io.write_addr.valid && write_addr =/= 0.U
-    private val write_data = io.write_data
+    private val write_addr = io.w.addr
+    private val write_enable = io.w.enable && write_addr =/= 0.U
+    private val write_data = io.w.data
     when (write_enable) {
         reg_file(write_addr) := write_data
     }
 
-    private val ra1 = io.read_addr_1
-    private val rd1 = io.read_data_1
+    private val ra1 = io.r.addr_1
+    private val rd1 = io.r.data_1
     when (ra1 === 0.U) {
         rd1 := 0.U
     } .elsewhen (write_enable & (ra1 === write_addr)) {
@@ -77,8 +85,8 @@ class RegFile extends Module {
         rd1 := reg_file(ra1)
     }
 
-    private val ra2 = io.read_addr_2
-    private val rd2 = io.read_data_2
+    private val ra2 = io.r.addr_2
+    private val rd2 = io.r.data_2
     when (ra2 === 0.U) {
         rd2 := 0.U
     } .elsewhen (write_enable & (ra2 === write_addr)) {
@@ -91,9 +99,9 @@ class RegFile extends Module {
 class ALU extends Module {
     val io = IO(new Bundle {
         val op      = Input(ALUOps.dataT)
-        val arg_1   = Input(DataT.Word)
-        val arg_2   = Input(DataT.Word)
-        val result  = Output(DataT.Word)
+        val arg_1   = Input(T.Word)
+        val arg_2   = Input(T.Word)
+        val result  = Output(T.Word)
         val zero    = Output(Bool())
         val neg     = Output(Bool())
     })
@@ -102,7 +110,7 @@ class ALU extends Module {
     private val lhs = io.arg_1
     private val rhs = io.arg_2
 
-    private val res = Wire(DataT.Word)
+    private val res = Wire(T.Word)
     when (op === ALUOps.AND) {
         res := lhs & rhs
     } .elsewhen (op === ALUOps.OR) {
