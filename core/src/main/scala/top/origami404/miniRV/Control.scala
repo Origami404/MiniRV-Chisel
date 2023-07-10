@@ -79,6 +79,8 @@ class Control extends Module {
         0x1.U -> BRUOps.NE,
         0x4.U -> BRUOps.LT,
         0x5.U -> BRUOps.GE,
+        0x6.U -> BRUOps.LTU,
+        0x7.U -> BRUOps.GEU
     )
 
     // lhs = Reg[rs1] / pc / 0
@@ -113,7 +115,9 @@ class Control extends Module {
     private val result_sel = io.exe.result_sel
     when (opcode === Opcodes.ARITH | opcode === Opcodes.ARITH_IMM) {
         when (funct3 === 0x2.U) {
-            result_sel := C.result_sel.neg_flag
+            result_sel := C.result_sel.lti_flag
+        } .elsewhen (funct3 === 0x3.U) {
+            result_sel := C.result_sel.ltu_flag
         } .otherwise {
             result_sel := C.result_sel.result
         }

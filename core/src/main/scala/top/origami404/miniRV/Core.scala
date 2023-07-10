@@ -307,7 +307,8 @@ class EXE extends Module {
     private val result = Wire(T.Word)
     M.mux(result, 0.U, io.in.ctl_exe.result_sel,
         C.result_sel.result -> alu.io.result,
-        C.result_sel.neg_flag -> Cat(0.U(T.Word.getWidth - 1), alu.io.lti.asUInt)
+        C.result_sel.lti_flag -> Cat(0.U(T.Word.getWidth - 1), alu.io.lti.asUInt),
+        C.result_sel.ltu_flag -> Cat(0.U(T.Word.getWidth - 1), alu.io.ltu.asUInt)
     )
 
     // output for data path
@@ -324,6 +325,7 @@ class EXE extends Module {
     bru.io.op := io.in.ctl_exe.bru_sel
     bru.io.eq := alu.io.eq
     bru.io.lti := alu.io.lti
+    bru.io.ltu := alu.io.ltu
     private val br_fail =
         io.in.debug.have_inst &
         io.in.is_br_like & ((io.in.pred.br_pred =/= bru.io.should_br) || io.in.is_jalr)

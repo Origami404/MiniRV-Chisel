@@ -112,6 +112,7 @@ class ALU extends Module {
         val result  = Output(T.Word)
         val eq    = Output(Bool())
         val lti     = Output(Bool())
+        val ltu     = Output(Bool())
     })
 
     private val op = io.op
@@ -135,9 +136,10 @@ class ALU extends Module {
         res := F.tcAdd(lhs, rhs)
     }
 
-    io.result  := res
-    io.eq    := lhs === rhs
-    io.lti     := lhs.asSInt < rhs.asSInt
+    io.result   := res
+    io.eq       := lhs === rhs
+    io.lti      := lhs.asSInt < rhs.asSInt
+    io.ltu      := lhs < rhs
 }
 
 class BRU extends Module {
@@ -145,6 +147,7 @@ class BRU extends Module {
         val op = Input(BRUOps.dataT)
         val eq = Input(Bool())
         val lti = Input(Bool())
+        val ltu = Input(Bool())
         val should_br = Output(Bool())
     })
 
@@ -153,6 +156,8 @@ class BRU extends Module {
         EQ -> io.eq,
         NE -> !io.eq,
         GE -> !io.lti,
-        LT -> io.lti
+        LT -> io.lti,
+        GEU -> !io.ltu,
+        LTU -> io.ltu
     )
 }

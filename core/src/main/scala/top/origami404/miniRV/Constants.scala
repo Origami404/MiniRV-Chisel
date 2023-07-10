@@ -33,11 +33,13 @@ class EnumWithWidth(width: Int) {
     final def dataT = UInt(w)
 }
 
-object BRUOps extends EnumWithWidth(4) {
+object BRUOps extends EnumWithWidth(3) {
     final var EQ = 0.U(w)
     final var NE = 1.U(w)
     final var GE = 2.U(w)
     final var LT = 3.U(w)
+    final var LTU = 4.U(w)
+    final var GEU = 5.U(w)
 }
 
 object ALUOps extends EnumWithWidth(3) {
@@ -70,12 +72,13 @@ object C {
         final val yes   = 1.U(w)
     }
     /** which output of ALU should be used as result of EXE */
-    final object result_sel extends EnumWithWidth(1) {
+    final object result_sel extends EnumWithWidth(2) {
         /** use ALU.result */
         final val result    = 0.U(w)
-        /** use ALU.neg */
-        final val neg_flag  = 1.U(w)
-        // TODO: sltu / sltiu here
+        /** use ALU.lti */
+        final val lti_flag  = 1.U(w)
+        /** use ALU.ltu */
+        final val ltu_flag  = 2.U(w)
     }
     /** whether ALU result should write back to RegFile */
     final object rfw_en extends EnumWithWidth(1) {
