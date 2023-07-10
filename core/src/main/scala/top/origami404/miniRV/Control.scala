@@ -1,7 +1,6 @@
 package top.origami404.miniRV
 
 import Chisel._
-import top.origami404.miniRV.{T, Opcodes, ALUOps, C}
 import top.origami404.miniRV.utils.F
 
 class CTL_PC_Bundle extends Bundle {
@@ -172,68 +171,71 @@ class Control extends Module {
     }
 }
 
-/**
-  * The branch predictor that will be placed in IF.
-  * Currently use 2-bit predictor.
-  */
+class IF_BPD_Bundle extends Bundle {
+    val inst = Output(T.Inst)
+    val pc = Output(T.Inst)
+    val npc = Input(T.Inst)
+}
+
+class EXE_BPD_Bundle extends Bundle {
+    val br_fail = Output(Bool())
+    val real_npc_base = Output(T.Addr)
+    val real_npc_offset = Output(T.Addr)
+}
+
+class BPD_PIPE_Bundle extends Bundle {
+    val br_pred = Output(Bool())
+}
+
 class BranchPred extends Module {
     val io = IO(new Bundle {
-        val pc = Input(T.Addr)
-        val inst = Input(T.Inst)
-
-        val br_pred = Output(Bool())
-        val npc_offset_pred = Output(T.Addr)
-
-        val br_real = Input(Bool())
-        val need_recover = Output(Bool())
-        val pc_recover = Output(T.Addr)
+        val if_ = Flipped(new IF_BPD_Bundle)
+        val exe = Flipped(new EXE_BPD_Bundle)
+        val pipe = new BPD_PIPE_Bundle
     })
 
-    // inst decoder
-    val opcode = io.inst(6, 0)
-    val imm = F.signExtend(32, Cat(io.inst(31, 25), io.inst(11, 7), 0.U(1.W)))
-    
-    val need_pred = opcode === Opcodes.BRANCH
-    val target_pc = io.pc + imm
-    val curr_pred = Wire(Bool())
-    
-    // small buffer for keeping info for the next branch right after a branch
-    // rc for Record
-    class BrPredRecord extends Bundle {
-        val valid = Output(Bool())
-        val pred = Output(Bool())
-        val recover_pc = Output(T.Addr)
+    private object TwoBitPredictor extends Module {
+        val io = IO(new Bundle {
+            val pred_fail = Input(Bool())
+            val pred = Output(Bool())
+        })
+
+        private val a = Reg(Bool())
+        private val b = Reg(Bool())
+        a := Mux(io.pred_fail, b, a)
+        b := Mux(io.pred_fail, !a, a)
+
+        io.pred := a
     }
-    val rc_1 = Reg(new BrPredRecord)
-    val rc_2 = Reg(new BrPredRecord)
 
-    rc_1.valid := need_pred
-    rc_1.pred := curr_pred
-    rc_1.recover_pc := target_pc
+    private val predictor = Module(TwoBitPredictor)
+    predictor.io.pred_fail := io.exe.br_fail
 
-    val clear_slot_2 = Wire(Bool())
-    rc_2.valid := !clear_slot_2 & rc_1.valid
-    rc_2.pred := rc_1.pred
-    rc_2.recover_pc := rc_1.recover_pc
+    // parse inst, get pred & imm
+    val inst = io.if_.inst
+    val opcode = inst(6, 0)
 
-    // 2-bit branch predictor
-    val tb_a = Reg(Bool(), init = false.B)
-    val tb_b = Reg(Bool(), init = false.B)
+    val imm = Wire(T.Addr)
+    when (opcode === Opcodes.JAL) {
+        val bits = Cat(inst(31, 31), inst(19, 12), inst(20, 20), inst(30, 21), 0.U(1.W))
+        imm := F.signExtend(imm.getWidth, bits)
+    } .elsewhen (opcode === Opcodes.BRANCH) {
+        imm := F.signExtend(imm.getWidth, Cat(inst(31, 25), inst(11, 7), 0.U(1.W)))
+    } .otherwise {
+        imm := 0.U
+    }
 
-    val pred_fail = rc_2.valid & (rc_2.pred =/= io.br_real)
-    tb_a := Mux(pred_fail, tb_b, tb_a)
-    tb_b := Mux(pred_fail, !tb_a, tb_a)
-    
-    curr_pred := tb_a
-    // When we prediect a br (1st), there maybe a br (2nd) right after a br (1st),
-    // and we keep the 2nd br's pred result in rc_1.
-    // If now we found our predition about the 1st br is wrong, we must cancal 
-    // the predition for the 2nd br. 
-    clear_slot_2 := pred_fail
+    // predict with respect to opcode
+    private val pred_npc_base = io.if_.pc
+    private val pred_will_branch =
+        opcode === Opcodes.JAL | (opcode === Opcodes.BRANCH & predictor.io.pred)
+    private val pred_npc_offset = Mux(pred_will_branch, imm, 4.U)
+    io.pipe.br_pred := pred_will_branch
 
-    // fail recover
-    io.need_recover := pred_fail
-    io.pc_recover := rc_2.recover_pc
+    // select output with respect to EXE failure
+    private val npc_base = Mux(io.exe.br_fail, io.exe.real_npc_base, pred_npc_base)
+    private val npc_offset = Mux(io.exe.br_fail, io.exe.real_npc_offset, pred_npc_offset)
+    io.if_.npc := npc_base + npc_offset
 }
 
 class Forwarder extends Module {
@@ -252,19 +254,19 @@ class Forwarder extends Module {
     })
 
     // port alias
-    val rs1 = io.id_rsn.rs1
-    val rs2 = io.id_rsn.rs2
+    private val rs1 = io.id_rsn.rs1
+    private val rs2 = io.id_rsn.rs2
 
-    val exe_rd = io.id_exe_rd
-    val mem_rd = io.exe_mem_rd
-    val mem_is_load = io.exe_mem_is_load
+    private val exe_rd = io.id_exe_rd
+    private val mem_rd = io.exe_mem_rd
+    private val mem_is_load = io.exe_mem_is_load
     
-    val exe_alu = io.exe_alu_result
-    val mem_alu = io.exe_mem_alu_result
-    val mem_read = io.mem_memr_data
+    private val exe_alu = io.exe_alu_result
+    private val mem_alu = io.exe_mem_alu_result
+    private val mem_read = io.mem_memr_data
 
-    val fwd_1 = io.out.reg_rs1
-    val fwd_2 = io.out.reg_rs2
+    private val fwd_1 = io.out.reg_rs1
+    private val fwd_2 = io.out.reg_rs2
 
     // logic
     when (exe_rd === rs1) {

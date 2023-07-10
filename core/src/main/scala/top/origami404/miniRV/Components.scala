@@ -30,19 +30,18 @@ class InstDecoder extends Module {
     private val is_J = opcode === Opcodes.JAL
     private val is_R = opcode === Opcodes.ARITH
 
+    private final val width = T.Word.getWidth
     when (is_I) {
-        io.imm := F.signExtend(32, inst(31, 20))
+        io.imm := F.signExtend(width, inst(31, 20))
     } .elsewhen (is_S) {
-        io.imm := F.signExtend(32, Cat(inst(31, 25), inst(11, 7)))
+        io.imm := F.signExtend(width, Cat(inst(31, 25), inst(11, 7)))
     } .elsewhen (is_B) {
-        io.imm := F.signExtend(32, Cat(inst(31, 25), inst(11, 7), 0.U(1.W)))
+        io.imm := F.signExtend(width, Cat(inst(31, 25), inst(11, 7), 0.U(1.W)))
     } .elsewhen (is_U) {
         io.imm := Cat(inst(31, 12), 0.U(12.W))
     } .elsewhen (is_J) {
-        // 太恐怖了，加个 assert
-        val bits = Cat(0.U(11.W), inst(31, 31), inst(19, 12), inst(20, 20), inst(30, 21), 0.U(1.W))
-        assert(bits.getWidth == 32)
-        io.imm := bits
+        val bits = Cat(inst(31, 31), inst(19, 12), inst(20, 20), inst(30, 21), 0.U(1.W))
+        io.imm := F.signExtend(width, bits)
     } .otherwise {
         io.imm := 0.U(32.W)
     }
