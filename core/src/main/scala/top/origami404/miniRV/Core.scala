@@ -7,13 +7,33 @@ import top.origami404.miniRV.{T, C}
 import top.origami404.miniRV.Control
 import top.origami404.miniRV.InstDecoder
 import top.origami404.miniRV.RegFile
-import top.origami404.miniRV.{InstRAMBundle, BusBundle, DebugBundle}
 import top.origami404.miniRV.utils.F
+
+class InstRAMBundle extends Bundle {
+  val inst_addr   = Output(UInt(32.W))
+  val inst        = Input(UInt(32.W))
+}
+
+class BusBundle extends Bundle {
+  val addr    = Output(UInt(32.W))
+  val rdata   = Input(UInt(32.W))
+  val wen     = Output(Bool())
+  val wdata   = Output(UInt(32.W))
+}
+
+class DebugBundle extends Bundle {
+  val wb_have_inst   = Output(Bool())
+  val wb_pc          = Output(UInt(32.W))
+  val wb_ena         = Output(Bool())
+  val wb_reg         = Output(UInt(5.W))
+  val wb_value       = Output(UInt(32.W))
+}
 
 class CPUCore extends Module {
     val io = IO(new Bundle {
         val inst_rom = new InstRAMBundle
         val bus = new BusBundle
+        val debug = new DebugBundle
     })
 
     private val fwd = Module(new Forwarder)
@@ -30,6 +50,13 @@ class CPUCore extends Module {
     private val mem = Module(new MEM)
     private val mem_wb = Module(new MEM_WB)
     private val wb = Module(new WB)
+
+    // wires for debug
+    this.io.debug.wb_have_inst := wb.io.debug.have_inst
+    this.io.debug.wb_pc := wb.io.debug.pc
+    this.io.debug.wb_ena := wb.io.reg.enable
+    this.io.debug.wb_reg := wb.io.reg.addr
+    this.io.debug.wb_value := wb.io.reg.data
 
     // wires to CPU outside
     this.io.inst_rom := if_.io.rom 
@@ -69,10 +96,17 @@ class CPUCore extends Module {
     wb.io.in := mem_wb.io.out
 }
 
+class PipelineDebugBundle extends Bundle {
+    val have_inst = Output(Bool())
+    val pc = Output(T.Addr)
+}
+
 class IF_ID_Bundle extends Bundle {
     val inst = Output(T.Inst)
     val pc = Output(T.Addr)
     val pred = new BPD_PIPE_Bundle
+
+    val debug = new PipelineDebugBundle
 }
 
 class ID_EXE_Bundle extends Bundle {
@@ -91,9 +125,12 @@ class ID_EXE_Bundle extends Bundle {
     val ctl_mem = new CTL_MEM_Bundle
     val ctl_wb = new CTL_WB_Bundle
     val pred = new BPD_PIPE_Bundle
+
+    val debug = new PipelineDebugBundle
 }
 
 class EXE_MEM_Bundle extends Bundle {
+    val pc = Output(T.Addr)     // used for debug
     val rd = Output(T.RegNo)
     val is_load = Output(Bool())
     
@@ -102,6 +139,8 @@ class EXE_MEM_Bundle extends Bundle {
 
     val ctl_mem = new CTL_MEM_Bundle
     val ctl_wb = new CTL_WB_Bundle
+
+    val debug = new PipelineDebugBundle
 }
 
 class MEM_WB_Bundle extends Bundle {
@@ -110,6 +149,8 @@ class MEM_WB_Bundle extends Bundle {
     val memr_data = Output(T.Word)
 
     val ctl_wb = new CTL_WB_Bundle
+
+    val debug = new PipelineDebugBundle
 }
 
 class IF extends Module {
@@ -133,6 +174,9 @@ class IF extends Module {
     io.out.pred := io.pred_pipe
     io.out.inst := io.rom.inst
     io.out.pc := pc
+
+    io.out.debug.have_inst := true.B
+    io.out.debug.pc := pc
 }
 
 class IF_ID extends Module {
@@ -144,7 +188,7 @@ class IF_ID extends Module {
         }
     })
 
-    private val reg = Reg(new IF_ID_Bundle)
+    private val reg = RegInit(0.U.asTypeOf(new IF_ID_Bundle))
     when (!io.pipe.stall) {
         reg := io.in
     }
@@ -179,6 +223,7 @@ class ID extends Module {
     io.out.reg_rs2 := io.reg.data_2
     io.out.imm := decoder.io.imm
     io.out.rd := decoder.io.rd
+    io.out.debug := io.in.debug
 
     private val ctl = Module(new Control)
     ctl.io.inst := io.in.inst
@@ -200,7 +245,7 @@ class ID_EXE extends Module {
         }
     })
 
-    private val reg = Reg(new ID_EXE_Bundle)
+    private val reg = RegInit(0.U.asTypeOf(new ID_EXE_Bundle))
 
     reg.pc      := io.in.pc 
     reg.rd      := io.in.rd 
@@ -214,10 +259,13 @@ class ID_EXE extends Module {
     when (io.pipe.next_nop) {
         reg.ctl_mem.memw_en := C.memw_en.no
         reg.ctl_wb.rfw_en := C.rfw_en.no
+        reg.debug.have_inst := false.B
     } .otherwise {
         reg.ctl_mem := io.in.ctl_mem
         reg.ctl_wb := io.in.ctl_wb
+        reg.debug.have_inst := io.in.debug.have_inst
     }
+    reg.debug.pc := io.in.pc
 
     io.out.pc      := reg.pc 
     io.out.rd      := reg.rd 
@@ -231,10 +279,13 @@ class ID_EXE extends Module {
     when (io.pipe.nop) {
         io.out.ctl_mem.memw_en := C.memw_en.no
         io.out.ctl_wb.rfw_en := C.rfw_en.no
+        io.out.debug.have_inst := false.B
     } .otherwise {
         io.out.ctl_mem := reg.ctl_mem
         io.out.ctl_wb := reg.ctl_wb
+        io.out.debug.have_inst := reg.debug.have_inst
     }
+    io.out.debug.pc := reg.debug.pc
 }
 
 class EXE extends Module {
@@ -292,6 +343,7 @@ class EXE extends Module {
     io.out.memw_data := io.in.reg_rs2
     io.out.ctl_wb := io.in.ctl_wb
     io.out.ctl_mem := io.in.ctl_mem
+    io.out.debug := io.in.debug
 
     // bru
     private val bru = Module(new BRU)
@@ -318,7 +370,7 @@ class EXE_MEM extends Module {
         val out = new EXE_MEM_Bundle
     })
 
-    private val reg = Reg(new EXE_MEM_Bundle)
+    private val reg = RegInit(0.U.asTypeOf(new EXE_MEM_Bundle))
     reg := io.in
     io.out := reg
 }
@@ -339,6 +391,7 @@ class MEM extends Module {
     io.out.result := io.in.result
     io.out.memr_data := io.bus.rdata
     io.out.ctl_wb := io.in.ctl_wb
+    io.out.debug := io.in.debug
 
     io.fwd.is_load := io.in.is_load
     io.fwd.alu_result := io.in.result
@@ -352,7 +405,7 @@ class MEM_WB extends Module {
         val out = new MEM_WB_Bundle
     })
 
-    private val reg = Reg(new MEM_WB_Bundle)
+    private val reg = RegInit(0.U.asTypeOf(new MEM_WB_Bundle))
     reg := io.in
     io.out := reg
 }
@@ -361,12 +414,15 @@ class WB extends Module {
     val io = IO(new Bundle {
         val in = Flipped(new MEM_WB_Bundle)
         val reg = Flipped(new RF_Write_Bundle)
+        val debug = new PipelineDebugBundle
     })
 
-    io.reg.enable := io.in.ctl_wb.rfw_en
+    io.reg.enable := io.in.ctl_wb.rfw_en === C.rfw_en.yes
     io.reg.addr := io.in.rd
     M.mux(io.reg.data, 0.U, io.in.ctl_wb.rfw_sel,
         C.rfw_sel.alu_result -> io.in.result,
         C.rfw_sel.memory -> io.in.memr_data
     )
+
+    io.debug := io.in.debug
 }
