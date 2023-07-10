@@ -149,7 +149,7 @@ class Control extends Module {
 
     // ===================== WB ========================= //
     private val rfw_en = io.wb.rfw_en
-    when (opcode === Opcodes.STORE || opcode === Opcodes.SYSTEM) {
+    when (opcode === Opcodes.STORE || opcode === Opcodes.BRANCH || opcode === Opcodes.SYSTEM) {
         rfw_en := C.rfw_en.no
     } .otherwise {
         rfw_en := C.rfw_en.yes
@@ -235,14 +235,16 @@ class MEM_FWD_Bundle extends Bundle {
     val rd = Output(T.RegNo)
     val alu_result = Output(T.RegNo)
     val memr_data = Output(T.RegNo)
+    val valid = Output(Bool())
 }
 
 class EXE_FWD_Bundle extends Bundle {
     val rd = Output(T.RegNo)
     val alu_result = Output(T.Word)
+    val valid = Output(Bool())
 }
 
-class FWD_EXE_Bundle extends Bundle {
+class FWD_ID_Bundle extends Bundle {
     val reg_rs1 = Output(ValidIO(T.Word))
     val reg_rs2 = Output(ValidIO(T.Word))
 }
@@ -252,7 +254,7 @@ class Forwarder extends Module {
         val rsn = Flipped(new ID_RSN_Bundle)
         val exe = Flipped(new EXE_FWD_Bundle)
         val mem = Flipped(new MEM_FWD_Bundle)
-        val out = new FWD_EXE_Bundle
+        val out = new FWD_ID_Bundle
     })
 
     // port alias
@@ -271,10 +273,10 @@ class Forwarder extends Module {
     private val fwd_2 = io.out.reg_rs2
 
     // logic
-    when (exe_rd === rs1) {
+    when (exe_rd === rs1 & io.exe.valid) {
         fwd_1.valid := true.B
         fwd_1.bits := exe_alu
-    } .elsewhen (mem_rd === rs1) {
+    } .elsewhen (mem_rd === rs1 & io.mem.valid) {
         fwd_1.valid := true.B
         fwd_1.bits := Mux(mem_is_load, mem_read, mem_alu)
     } .otherwise {
@@ -282,10 +284,10 @@ class Forwarder extends Module {
         fwd_1.bits := 0.U
     }
 
-    when (exe_rd === rs2) {
+    when (exe_rd === rs2 & io.exe.valid) {
         fwd_2.valid := true.B
         fwd_2.bits := exe_alu
-    } .elsewhen (mem_rd === rs2) {
+    } .elsewhen (mem_rd === rs2 & io.mem.valid) {
         fwd_2.valid := true.B
         fwd_2.bits := Mux(mem_is_load, mem_read, mem_alu)
     } .otherwise {

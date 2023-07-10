@@ -66,7 +66,7 @@ class CPUCore extends Module {
     fwd.io.rsn := id.io.rsn
     fwd.io.exe := exe.io.fwd
     fwd.io.mem := mem.io.fwd
-    exe.io.fwd := fwd.io.exe
+    id.io.fwd := fwd.io.out
 
     // wires to Hazard module
     hzd.io.exe := exe.io.hzd
@@ -211,6 +211,7 @@ class ID_RSN_Bundle extends Bundle {
 class ID extends Module {
     val io = IO(new Bundle {
         val in = Flipped(new IF_ID_Bundle)
+        val fwd = Flipped(new FWD_ID_Bundle)
         val reg = Flipped(new RF_Read_Bundle)
         val out = new ID_EXE_Bundle
         val rsn = new ID_RSN_Bundle
@@ -222,9 +223,14 @@ class ID extends Module {
     io.reg.addr_1 := decoder.io.rs1
     io.reg.addr_2 := decoder.io.rs2
 
+    private val reg_rs1 =
+        Mux(io.fwd.reg_rs1.valid, io.fwd.reg_rs1.bits, io.reg.data_1)
+    private val reg_rs2 =
+        Mux(io.fwd.reg_rs2.valid, io.fwd.reg_rs2.bits, io.reg.data_2)
+
     io.out.pc := io.in.pc
-    io.out.reg_rs1 := io.reg.data_1
-    io.out.reg_rs2 := io.reg.data_2
+    io.out.reg_rs1 := reg_rs1
+    io.out.reg_rs2 := reg_rs2
     io.out.imm := decoder.io.imm
     io.out.rd := decoder.io.rd
     io.out.debug := io.in.debug
@@ -261,30 +267,24 @@ class ID_EXE extends Module {
 class EXE extends Module {
     val io = IO(new Bundle {
         val in = Flipped(new ID_EXE_Bundle)
-        val fwd = Flipped(new FWD_EXE_Bundle)
         val out = new EXE_MEM_Bundle
         val pred = new EXE_BPD_Bundle
         val hzd = new EXE_HZD_Bundle
+        val fwd = new EXE_FWD_Bundle
     })
 
-    // forward select
-    private val reg_rs1 =
-        Mux(io.fwd.reg_rs1.valid, io.fwd.reg_rs1.bits, io.in.reg_rs1)
-    private val reg_rs2 =
-        Mux(io.fwd.reg_rs2.valid, io.fwd.reg_rs2.bits, io.in.reg_rs2)
-    
     // lhs/rhs/-rhs select
     private val lhs = Wire(T.Word)
     M.mux(lhs, 0.U, io.in.ctl_exe.lhs_sel, 
         C.lhs_sel.pc -> io.in.pc,
-        C.lhs_sel.rs1 -> reg_rs1,
+        C.lhs_sel.rs1 -> io.in.reg_rs1,
         C.lhs_sel.zero -> 0.U
     )
     
     private val rhs_raw = Wire(T.Word)
     M.mux(rhs_raw, 0.U, io.in.ctl_exe.rhs_sel,
         C.rhs_sel.imm -> io.in.imm,
-        C.rhs_sel.rs2 -> reg_rs2,
+        C.rhs_sel.rs2 -> io.in.reg_rs2,
         C.rhs_sel.four -> 4.U
     )
     
@@ -333,6 +333,13 @@ class EXE extends Module {
     io.hzd.br_fail := br_fail
     io.hzd.is_load := io.in.is_load
     io.hzd.rd := io.in.rd
+
+    // output for forwarding
+    io.fwd.alu_result := alu.io.result
+    io.fwd.rd := io.in.rd
+    io.fwd.valid := 
+        io.in.ctl_wb.rfw_en === C.rfw_en.yes & 
+        io.in.ctl_wb.rfw_sel === C.rfw_sel.alu_result
 }
 
 class EXE_MEM extends Module {
@@ -368,6 +375,9 @@ class MEM extends Module {
     io.fwd.alu_result := io.in.result
     io.fwd.rd := io.in.rd
     io.fwd.memr_data := io.bus.rdata
+    io.fwd.valid := 
+        io.in.ctl_wb.rfw_en === C.rfw_en.yes & 
+        io.in.ctl_wb.rfw_sel === C.rfw_sel.memory
 }
 
 class MEM_WB extends Module {
