@@ -73,8 +73,8 @@ class CPUCore extends Module {
     hzd.io.rsn := id.io.rsn
     if_.io.pc_stall := hzd.io.stall
     if_id.io.pipe.stall := hzd.io.stall
-    id_exe.io.pipe.nop := hzd.io.nop
-    id_exe.io.pipe.next_nop := hzd.io.next_nop
+    if_id.io.pipe.nop := hzd.io.id_nop
+    id_exe.io.pipe.nop := hzd.io.exe_nop
 
     // wires to Branch Prediction module
     pred.io.if_ := if_.io.pred
@@ -184,6 +184,7 @@ class IF_ID extends Module {
         val in = Flipped(new IF_ID_Bundle)
         val out = new IF_ID_Bundle
         val pipe = new Bundle {
+            val nop = Input(Bool())
             val stall = Input(Bool())
         }
     })
@@ -191,6 +192,9 @@ class IF_ID extends Module {
     private val reg = RegInit(0.U.asTypeOf(new IF_ID_Bundle))
     when (!io.pipe.stall) {
         reg := io.in
+    }
+    when (io.pipe.nop) {
+        reg.debug.have_inst := false.B
     }
     io.out := reg
 }
@@ -241,51 +245,17 @@ class ID_EXE extends Module {
         val out = new ID_EXE_Bundle
         val pipe = new Bundle {
             val nop = Input(Bool())
-            val next_nop = Input(Bool())
         }
     })
 
     private val reg = RegInit(0.U.asTypeOf(new ID_EXE_Bundle))
 
-    reg.pc      := io.in.pc 
-    reg.rd      := io.in.rd 
-    reg.is_load := io.in.is_load
-    reg.is_jalr := io.in.is_jalr
-    reg.is_br_like  := io.in.is_br_like
-    reg.reg_rs1     := io.in.reg_rs1
-    reg.reg_rs2     := io.in.reg_rs2 
-    reg.imm     := io.in.imm 
-    reg.ctl_exe := io.in.ctl_exe
-    when (io.pipe.next_nop) {
-        reg.ctl_mem.memw_en := C.memw_en.no
-        reg.ctl_wb.rfw_en := C.rfw_en.no
-        reg.debug.have_inst := false.B
-    } .otherwise {
-        reg.ctl_mem := io.in.ctl_mem
-        reg.ctl_wb := io.in.ctl_wb
-        reg.debug.have_inst := io.in.debug.have_inst
-    }
-    reg.debug.pc := io.in.pc
-
-    io.out.pc      := reg.pc 
-    io.out.rd      := reg.rd 
-    io.out.is_load := reg.is_load
-    io.out.is_jalr := reg.is_jalr
-    io.out.is_br_like  := reg.is_br_like
-    io.out.reg_rs1     := reg.reg_rs1 
-    io.out.reg_rs2     := reg.reg_rs2 
-    io.out.imm     := reg.imm 
-    io.out.ctl_exe := reg.ctl_exe
+    reg := io.in
     when (io.pipe.nop) {
-        io.out.ctl_mem.memw_en := C.memw_en.no
-        io.out.ctl_wb.rfw_en := C.rfw_en.no
-        io.out.debug.have_inst := false.B
-    } .otherwise {
-        io.out.ctl_mem := reg.ctl_mem
-        io.out.ctl_wb := reg.ctl_wb
-        io.out.debug.have_inst := reg.debug.have_inst
+        reg.debug.have_inst := false.B
     }
-    io.out.debug.pc := reg.debug.pc
+
+    io.out := reg
 }
 
 class EXE extends Module {
@@ -351,6 +321,7 @@ class EXE extends Module {
     bru.io.zero := alu.io.zero
     bru.io.neg := alu.io.neg
     private val br_fail =
+        io.in.debug.have_inst &
         io.in.is_br_like & (io.in.pred.br_pred =/= bru.io.should_br)
 
     // output for branch prediction
@@ -383,7 +354,7 @@ class MEM extends Module {
         val fwd = new MEM_FWD_Bundle
     })
 
-    io.bus.wen := io.in.ctl_mem.memw_en
+    io.bus.wen := io.in.debug.have_inst & io.in.ctl_mem.memw_en
     io.bus.addr := io.in.result
     io.bus.wdata := io.in.memw_data
 
@@ -393,7 +364,7 @@ class MEM extends Module {
     io.out.ctl_wb := io.in.ctl_wb
     io.out.debug := io.in.debug
 
-    io.fwd.is_load := io.in.is_load
+    io.fwd.is_load := io.in.debug.have_inst & io.in.is_load
     io.fwd.alu_result := io.in.result
     io.fwd.rd := io.in.rd
     io.fwd.memr_data := io.bus.rdata
@@ -417,7 +388,8 @@ class WB extends Module {
         val debug = new PipelineDebugBundle
     })
 
-    io.reg.enable := io.in.ctl_wb.rfw_en === C.rfw_en.yes
+    io.reg.enable := 
+        io.in.debug.have_inst & (io.in.ctl_wb.rfw_en === C.rfw_en.yes)
     io.reg.addr := io.in.rd
     M.mux(io.reg.data, 0.U, io.in.ctl_wb.rfw_sel,
         C.rfw_sel.alu_result -> io.in.result,

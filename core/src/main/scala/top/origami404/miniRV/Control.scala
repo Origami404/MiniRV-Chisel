@@ -305,15 +305,15 @@ class Hazard extends Module {
         val exe = Flipped(new EXE_HZD_Bundle)
         val rsn = Flipped(new ID_RSN_Bundle)
         val stall = Output(Bool())
-        val nop = Output(Bool())
-        val next_nop = Output(Bool())
+        val exe_nop = Output(Bool())
+        val id_nop = Output(Bool())
     })
 
     private val stall = io.exe.is_load & (io.exe.rd === io.rsn.rs1 | io.exe.rd === io.rsn.rs2)
-    private val nop = stall | io.exe.br_fail
-    private val next_nop = io.exe.br_fail
+    private val exe_nop = stall | io.exe.br_fail
+    private val id_nop = io.exe.br_fail
 
     io.stall := stall
-    io.nop := nop
-    io.next_nop := next_nop
+    io.exe_nop := exe_nop
+    io.id_nop := id_nop
 }
