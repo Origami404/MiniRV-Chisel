@@ -110,8 +110,8 @@ class ALU extends Module {
         val arg_1   = Input(T.Word)
         val arg_2   = Input(T.Word)
         val result  = Output(T.Word)
-        val zero    = Output(Bool())
-        val neg     = Output(Bool())
+        val eq    = Output(Bool())
+        val lti     = Output(Bool())
     })
 
     private val op = io.op
@@ -136,23 +136,23 @@ class ALU extends Module {
     }
 
     io.result  := res
-    io.zero    := res === 0.U
-    io.neg     := res(31).asBool
+    io.eq    := lhs === rhs
+    io.lti     := lhs.asSInt < rhs.asSInt
 }
 
 class BRU extends Module {
     val io = IO(new Bundle {
         val op = Input(BRUOps.dataT)
-        val zero = Input(Bool())
-        val neg = Input(Bool())
+        val eq = Input(Bool())
+        val lti = Input(Bool())
         val should_br = Output(Bool())
     })
 
     import BRUOps._
     M.mux(io.should_br, false.B, io.op, 
-        EQ -> io.zero,
-        NE -> !io.zero,
-        GE -> !io.neg,
-        LT -> io.neg
+        EQ -> io.eq,
+        NE -> !io.eq,
+        GE -> !io.lti,
+        LT -> io.lti
     )
 }

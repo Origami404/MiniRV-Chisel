@@ -103,26 +103,8 @@ class Control extends Module {
 
     // rhs = rhs / -rhs
     private val rhs_neg = io.exe.rhs_neg
-    private val is_sub_when_arith = funct3 === 0x0.U && funct7 === 0x20.U
-    private val is_sltxx = funct3 === 0x2.U || funct3 === 0x3.U
-    when (opcode === Opcodes.ARITH) {
-        when (is_sub_when_arith) {
-            // sub
-            rhs_neg := C.rhs_neg.yes
-        } .elsewhen (is_sltxx) {
-            // slt, sltu
-            rhs_neg := C.rhs_neg.yes
-        } .otherwise {
-            rhs_neg := C.rhs_neg.no
-        }
-    } .elsewhen (opcode === Opcodes.ARITH_IMM) {
-      when (is_sltxx) {
-          // slti, sltiu
-          rhs_neg := C.rhs_neg.yes
-      } .otherwise {
-          rhs_neg := C.rhs_neg.no
-      }
-    } .elsewhen (opcode === Opcodes.BRANCH) {
+    private val is_sub = opcode === Opcodes.ARITH & funct3 === 0x0.U && funct7 === 0x20.U
+    when (is_sub) {
         rhs_neg := C.rhs_neg.yes
     } .otherwise {
         rhs_neg := C.rhs_neg.no
