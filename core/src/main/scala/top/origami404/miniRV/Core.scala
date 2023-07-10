@@ -32,8 +32,8 @@ class CPUCore extends Module {
     private val wb = Module(new WB)
 
     // wires to CPU outside
-    if_.io.rom := this.io.inst_rom
-    mem.io.bus := this.io.bus
+    this.io.inst_rom := if_.io.rom 
+    this.io.bus := mem.io.bus
 
     // wires to Forward module
     fwd.io.rsn := id.io.rsn
@@ -52,12 +52,11 @@ class CPUCore extends Module {
     // wires to Branch Prediction module
     pred.io.if_ := if_.io.pred
     pred.io.exe := exe.io.pred
-    if_.io.pred := pred.io.if_
     if_.io.pred_pipe := pred.io.pipe
 
     // wires to Register File module
     id.io.reg := reg.io.r
-    reg.io.w := wb.io.reg
+    wb.io.reg := reg.io.w 
 
     // data path
     if_id.io.in := if_.io.out
@@ -164,8 +163,8 @@ class ID_RSN_Bundle extends Bundle {
 class ID extends Module {
     val io = IO(new Bundle {
         val in = Flipped(new IF_ID_Bundle)
+        val reg = Flipped(new RF_Read_Bundle)
         val out = new ID_EXE_Bundle
-        val reg = new RF_Read_Bundle
         val rsn = new ID_RSN_Bundle
     })
 
@@ -292,7 +291,7 @@ class EXE extends Module {
     io.out.result := result
     io.out.memw_data := io.in.reg_rs2
     io.out.ctl_wb := io.in.ctl_wb
-    io.out.ctl_mem := io.out.ctl_mem
+    io.out.ctl_mem := io.in.ctl_mem
 
     // bru
     private val bru = Module(new BRU)
