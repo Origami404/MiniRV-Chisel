@@ -50,7 +50,7 @@ class InstDecoder extends Module {
         io.imm := 0.U(32.W)
     }
 
-    io.is_br_like := is_B | is_J
+    io.is_br_like := is_B | opcode === Opcodes.JAL | opcode === Opcodes.JALR
     io.is_jalr := opcode === Opcodes.JALR
     io.is_load := opcode === Opcodes.LOAD
 }

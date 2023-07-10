@@ -326,11 +326,11 @@ class EXE extends Module {
     bru.io.neg := alu.io.neg
     private val br_fail =
         io.in.debug.have_inst &
-        io.in.is_br_like & (io.in.pred.br_pred =/= bru.io.should_br)
+        io.in.is_br_like & ((io.in.pred.br_pred =/= bru.io.should_br) || io.in.is_jalr)
 
     // output for branch prediction
     io.pred.br_fail := br_fail
-    io.pred.real_npc_offset := Mux(bru.io.should_br, io.in.imm, 4.U)
+    io.pred.real_npc_offset := Mux(bru.io.should_br | io.in.is_jalr, io.in.imm, 4.U)
     io.pred.real_npc_base := Mux(io.in.is_jalr, io.in.reg_rs1, io.in.pc)
 
     // output for hazard

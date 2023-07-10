@@ -85,7 +85,7 @@ class Control extends Module {
     private val lhs_sel = io.exe.lhs_sel
     when (opcode === Opcodes.LUI) {
         lhs_sel := C.lhs_sel.zero
-    } .elsewhen (opcode === Opcodes.AUIPC) {
+    } .elsewhen (opcode === Opcodes.AUIPC || opcode === Opcodes.JAL || opcode === Opcodes.JALR) {
         lhs_sel := C.lhs_sel.pc
     } .otherwise {
         lhs_sel := C.lhs_sel.rs1
