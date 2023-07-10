@@ -13,6 +13,10 @@ class InstDecoder extends Module {
         val rs1     = Output(T.RegNo)
         val rs2     = Output(T.RegNo)
         val imm     = Output(T.Word)
+
+        val is_load    = Output(Bool())
+        val is_br_like = Output(Bool())
+        val is_jalr    = Output(Bool())
     })
 
     private val inst = io.inst
@@ -45,6 +49,10 @@ class InstDecoder extends Module {
     } .otherwise {
         io.imm := 0.U(32.W)
     }
+
+    io.is_br_like := is_B | is_J
+    io.is_jalr := opcode === Opcodes.JALR
+    io.is_load := opcode === Opcodes.LOAD
 }
 
 class RF_Read_Bundle extends Bundle {

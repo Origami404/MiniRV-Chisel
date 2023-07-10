@@ -235,6 +235,10 @@ class ID extends Module {
     io.out.rd := decoder.io.rd
     io.out.debug := io.in.debug
 
+    io.out.is_load := decoder.io.is_load
+    io.out.is_br_like := decoder.io.is_br_like
+    io.out.is_jalr := decoder.io.is_jalr
+
     private val ctl = Module(new Control)
     ctl.io.inst := io.in.inst
     io.out.ctl_exe := ctl.io.exe
