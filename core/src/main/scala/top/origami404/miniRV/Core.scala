@@ -122,7 +122,7 @@ class IF extends Module {
         val out = new IF_ID_Bundle
     })
 
-    private val pc = Reg(T.Addr, init = Inits.pc)
+    private val pc = Reg(T.Addr, init = 0.U)
     when (!io.pc_stall) {
         pc := io.pred.npc
     }
@@ -213,8 +213,8 @@ class ID_EXE extends Module {
     reg.imm     := io.in.imm 
     reg.ctl_exe := io.in.ctl_exe
     when (io.pipe.next_nop) {
-        reg.ctl_mem := Inits.ctl_mem_nop
-        reg.ctl_wb := Inits.ctl_wb_nop
+        reg.ctl_mem.memw_en := C.memw_en.no
+        reg.ctl_wb.rfw_en := C.rfw_en.no
     } .otherwise {
         reg.ctl_mem := io.in.ctl_mem
         reg.ctl_wb := io.in.ctl_wb
@@ -230,8 +230,8 @@ class ID_EXE extends Module {
     io.out.imm     := reg.imm 
     io.out.ctl_exe := reg.ctl_exe
     when (io.pipe.nop) {
-        io.out.ctl_mem := Inits.ctl_mem_nop
-        io.out.ctl_wb := Inits.ctl_wb_nop
+        io.out.ctl_mem.memw_en := C.memw_en.no
+        io.out.ctl_wb.rfw_en := C.rfw_en.no
     } .otherwise {
         io.out.ctl_mem := reg.ctl_mem
         io.out.ctl_wb := reg.ctl_wb

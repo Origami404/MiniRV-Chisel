@@ -1,7 +1,6 @@
 package top.origami404.miniRV
 
 import Chisel._
-import chisel3.experimental.BundleLiterals._
 
 object T {
     final val Inst = UInt(32.W)
@@ -31,7 +30,7 @@ object Opcodes {
 
 class EnumWithWidth(width: Int) {
     protected val w = width.W
-    final val dataT = UInt(w)
+    final def dataT = UInt(w)
 }
 
 object BRUOps extends EnumWithWidth(4) {
@@ -93,15 +92,4 @@ object C {
         final val no    = 0.U(w)
         final val yes   = 1.U(w)
     }
-}
-
-object Inits {
-    final val pc = 0.U(T.Addr.getWidth)
-    final val ctl_mem_nop = (new CTL_MEM_Bundle).Lit(
-        _.memw_en -> C.memw_en.no,
-    )
-    final val ctl_wb_nop = (new CTL_WB_Bundle).Lit(
-        _.rfw_en -> C.rfw_en.no,
-        _.rfw_sel -> C.rfw_sel.alu_result
-    )
 }
