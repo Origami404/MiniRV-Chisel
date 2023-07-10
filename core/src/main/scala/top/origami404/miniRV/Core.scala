@@ -182,21 +182,12 @@ class ID_EXE extends Module {
     }
 }
 
-class FWD_EXE_Bundle extends Bundle {
-    val reg_rs1 = Output(ValidIO(T.Word))
-    val reg_rs2 = Output(ValidIO(T.Word)) 
-}
-
-class PRED_EXE_Bundle extends Bundle {
-    val br_real = Output(Bool())
-}
 
 class EXE extends Module {
     val io = IO(new Bundle {
         val in = Flipped(new ID_EXE_Bundle)
         val out = new EXE_MEM_Bundle
         val fwd = Flipped(new FWD_EXE_Bundle)
-        val pred = new PRED_EXE_Bundle
     })
 
     // forward select

@@ -1,6 +1,7 @@
 package top.origami404.miniRV
 
 import Chisel._
+import chisel3.util.ValidIO
 import top.origami404.miniRV.utils.F
 
 class CTL_PC_Bundle extends Bundle {
@@ -238,32 +239,42 @@ class BranchPred extends Module {
     io.if_.npc := npc_base + npc_offset
 }
 
+class MEM_FWD_Bundle extends Bundle {
+    val is_load = Output(Bool())
+    val rd = Output(T.RegNo)
+    val alu_result = Output(T.RegNo)
+    val memr_data = Output(T.RegNo)
+}
+
+class EXE_FWD_Bundle extends Bundle {
+    val rd = Output(T.RegNo)
+    val alu_result = Output(T.Word)
+}
+
+class FWD_EXE_Bundle extends Bundle {
+    val reg_rs1 = Output(ValidIO(T.Word))
+    val reg_rs2 = Output(ValidIO(T.Word))
+}
+
 class Forwarder extends Module {
     val io = IO(new Bundle {
-        val id_rsn = Flipped(new ID_RSN_Bundle)
-
-        val id_exe_rd = Input(T.RegNo)
-        val exe_alu_result = Input(T.RegNo)
-
-        val exe_mem_is_load = Input(Bool())
-        val exe_mem_rd = Input(T.RegNo)
-        val exe_mem_alu_result = Input(T.RegNo)
-        val mem_memr_data = Input(T.RegNo)
-
+        val rsn = Flipped(new ID_RSN_Bundle)
+        val exe = Flipped(new EXE_FWD_Bundle)
+        val mem = Flipped(new MEM_FWD_Bundle)
         val out = new FWD_EXE_Bundle
     })
 
     // port alias
-    private val rs1 = io.id_rsn.rs1
-    private val rs2 = io.id_rsn.rs2
+    private val rs1 = io.rsn.rs1
+    private val rs2 = io.rsn.rs2
 
-    private val exe_rd = io.id_exe_rd
-    private val mem_rd = io.exe_mem_rd
-    private val mem_is_load = io.exe_mem_is_load
+    private val exe_rd = io.exe.rd
+    private val mem_rd = io.mem.rd
+    private val mem_is_load = io.mem.is_load
     
-    private val exe_alu = io.exe_alu_result
-    private val mem_alu = io.exe_mem_alu_result
-    private val mem_read = io.mem_memr_data
+    private val exe_alu = io.exe.alu_result
+    private val mem_alu = io.mem.alu_result
+    private val mem_read = io.mem.memr_data
 
     private val fwd_1 = io.out.reg_rs1
     private val fwd_2 = io.out.reg_rs2
@@ -292,8 +303,26 @@ class Forwarder extends Module {
     }
 }
 
+class EXE_HZD_Bundle extends Bundle {
+    val is_load = Output(Bool())
+    val rd = Output(Bool())
+}
+
 class Hazard extends Module {
     val io = IO(new Bundle {
-
+        val br_fail = Input(Bool())
+        val exe = Flipped(new EXE_HZD_Bundle)
+        val rsn = Flipped(new ID_RSN_Bundle)
+        val stall = Output(Bool())
+        val nop = Output(Bool())
+        val next_nop = Output(Bool())
     })
+
+    private val stall = io.exe.is_load & (io.exe.rd === io.rsn.rs1 | io.exe.rd === io.rsn.rs2)
+    private val nop = stall | io.br_fail
+    private val next_nop = io.br_fail
+
+    io.stall := stall
+    io.nop := nop
+    io.next_nop := next_nop
 }
