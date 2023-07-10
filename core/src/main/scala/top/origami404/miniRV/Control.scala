@@ -156,7 +156,7 @@ class Control extends Module {
     }
 
     private val rfw_sel = io.wb.rfw_sel
-    when (opcode === Opcodes.STORE) {
+    when (opcode === Opcodes.LOAD) {
         rfw_sel := C.rfw_sel.memory
     } .otherwise {
         rfw_sel := C.rfw_sel.alu_result
