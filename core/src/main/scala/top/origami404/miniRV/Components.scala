@@ -40,7 +40,7 @@ class InstDecoder extends Module {
     } .elsewhen (is_S) {
         io.imm := F.signExtend(width, Cat(inst(31, 25), inst(11, 7)))
     } .elsewhen (is_B) {
-        io.imm := F.signExtend(width, Cat(inst(31, 25), inst(11, 7), 0.U(1.W)))
+        io.imm := F.signExtend(width, Cat(inst(31, 31), inst(7, 7), inst(30, 25), inst(11, 8), 0.U(1.W)))
     } .elsewhen (is_U) {
         io.imm := Cat(inst(31, 12), 0.U(12.W))
     } .elsewhen (is_J) {
