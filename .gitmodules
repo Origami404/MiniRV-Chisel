@@ -1,0 +1,4 @@
+[submodule "trace"]
+	path = trace
+	url = https://gitee.com/hitsz-cslab/cdp-tests.git
+	commit = 85108ff946fa315a9b143557ea74ca3b8db40cec
