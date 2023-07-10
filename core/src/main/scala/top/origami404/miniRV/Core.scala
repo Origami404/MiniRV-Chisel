@@ -330,7 +330,7 @@ class EXE extends Module {
 
     // output for branch prediction
     io.pred.br_fail := br_fail
-    io.pred.real_npc_offset := io.in.imm
+    io.pred.real_npc_offset := Mux(bru.io.should_br, io.in.imm, 4.U)
     io.pred.real_npc_base := Mux(io.in.is_jalr, io.in.reg_rs1, io.in.pc)
 
     // output for hazard
