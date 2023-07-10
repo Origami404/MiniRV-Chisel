@@ -53,22 +53,6 @@ object ALUOps extends EnumWithWidth(3) {
 }
 
 object C {
-    /** where npc_offset comes from */
-    final object npc_offset_sel extends EnumWithWidth(2) {
-        /** just +4 */
-        final val next  = 0.U(w)
-        /** from imm in instruction */
-        final val imm   = 1.U(w)
-        /** from alu result */
-        final val alu   = 2.U(w)
-    }
-    /** where npc_base comes from */
-    final object npc_base_sel extends EnumWithWidth(1) {
-        /** from pc, normally */
-        final val pc = 0.U(w)
-        /** from rs1 in RF, for jalr */
-        final val rs1 = 1.U(w)
-    }
     /** where ALU lhs argument comes from */
     final object lhs_sel extends EnumWithWidth(2) {
         final val rs1   = 0.U(w)

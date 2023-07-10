@@ -4,11 +4,6 @@ import Chisel._
 import chisel3.util.ValidIO
 import top.origami404.miniRV.utils.{F, M}
 
-class CTL_PC_Bundle extends Bundle {
-    val npc_base_sel = Output(C.npc_base_sel.dataT)
-    val npc_offset_sel = Output(C.npc_offset_sel.dataT)
-}
-
 class CTL_EXE_Bundle extends Bundle {
     val alu_sel = Output(ALUOps.dataT)
     val bru_sel = Output(BRUOps.dataT)
@@ -30,7 +25,6 @@ class CTL_WB_Bundle extends Bundle {
 class Control extends Module {
     val io = IO(new Bundle {
         val inst = Input(T.Inst)
-        val pc = new CTL_PC_Bundle
         val exe = new CTL_EXE_Bundle
         val mem = new CTL_MEM_Bundle
         val wb = new CTL_WB_Bundle
@@ -39,23 +33,6 @@ class Control extends Module {
     private val opcode = io.inst(6, 0)
     private val funct3 = io.inst(14, 12)
     private val funct7 = io.inst(31, 25)
-
-    // ===================== PC ========================= //
-    private val npc_base_sel = io.pc.npc_base_sel
-    when (opcode === Opcodes.JALR) {
-        npc_base_sel := C.npc_base_sel.rs1
-    } .otherwise {
-        npc_base_sel := C.npc_base_sel.pc
-    }
-
-    private val npc_offset_sel = io.pc.npc_offset_sel
-    when (opcode === Opcodes.BRANCH || opcode === Opcodes.JAL) {
-        npc_offset_sel := C.npc_offset_sel.imm
-    } .elsewhen (opcode === Opcodes.JALR) {
-        npc_offset_sel := C.npc_offset_sel.alu
-    } .otherwise {
-        npc_offset_sel := C.npc_offset_sel.next
-    }
 
     // ===================== EXE ========================= //
     private val alu_sel = io.exe.alu_sel
@@ -318,13 +295,13 @@ class Forwarder extends Module {
 }
 
 class EXE_HZD_Bundle extends Bundle {
+    val br_fail = Output(Bool())
     val is_load = Output(Bool())
     val rd = Output(Bool())
 }
 
 class Hazard extends Module {
     val io = IO(new Bundle {
-        val br_fail = Input(Bool())
         val exe = Flipped(new EXE_HZD_Bundle)
         val rsn = Flipped(new ID_RSN_Bundle)
         val stall = Output(Bool())
@@ -333,8 +310,8 @@ class Hazard extends Module {
     })
 
     private val stall = io.exe.is_load & (io.exe.rd === io.rsn.rs1 | io.exe.rd === io.rsn.rs2)
-    private val nop = stall | io.br_fail
-    private val next_nop = io.br_fail
+    private val nop = stall | io.exe.br_fail
+    private val next_nop = io.exe.br_fail
 
     io.stall := stall
     io.nop := nop

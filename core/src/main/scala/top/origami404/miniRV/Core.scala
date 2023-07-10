@@ -14,8 +14,60 @@ class CPUCore extends Module {
     val io = IO(new Bundle {
         val inst_rom = new InstRAMBundle
         val bus = new BusBundle
-        val debug_wb = new DebugBundle
     })
+
+    private val fwd = Module(new Forwarder)
+    private val hzd = Module(new Hazard)
+    private val pred = Module(new BranchPred)
+    private val reg = Module(new RegFile)
+
+    private val if_ = Module(new IF)
+    private val if_id = Module(new IF_ID)
+    private val id = Module(new ID)
+    private val id_exe = Module(new ID_EXE)
+    private val exe = Module(new EXE)
+    private val exe_mem = Module(new EXE_MEM)
+    private val mem = Module(new MEM)
+    private val mem_wb = Module(new MEM_WB)
+    private val wb = Module(new WB)
+
+    // wires to CPU outside
+    if_.io.rom := this.io.inst_rom
+    mem.io.bus := this.io.bus
+
+    // wires to Forward module
+    fwd.io.rsn := id.io.rsn
+    fwd.io.exe := exe.io.fwd
+    fwd.io.mem := mem.io.fwd
+    exe.io.fwd := fwd.io.exe
+
+    // wires to Hazard module
+    hzd.io.exe := exe.io.hzd
+    hzd.io.rsn := id.io.rsn
+    if_.io.pc_stall := hzd.io.stall
+    if_id.io.pipe.stall := hzd.io.stall
+    id_exe.io.pipe.nop := hzd.io.nop
+    id_exe.io.pipe.next_nop := hzd.io.next_nop
+
+    // wires to Branch Prediction module
+    pred.io.if_ := if_.io.pred
+    pred.io.exe := exe.io.pred
+    if_.io.pred := pred.io.if_
+    if_.io.pred_pipe := pred.io.pipe
+
+    // wires to Register File module
+    id.io.reg := reg.io.r
+    reg.io.w := wb.io.reg
+
+    // data path
+    if_id.io.in := if_.io.out
+    id.io.in := if_id.io.out
+    id_exe.io.in := id.io.out
+    exe.io.in := id_exe.io.out
+    exe_mem.io.in := exe.io.out
+    mem.io.in := exe_mem.io.out
+    mem_wb.io.in := mem.io.out
+    wb.io.in := mem_wb.io.out
 }
 
 class IF_ID_Bundle extends Bundle {
@@ -64,17 +116,22 @@ class MEM_WB_Bundle extends Bundle {
 class IF extends Module {
     val io = IO(new Bundle {
         val rom = new InstRAMBundle
+        val pc_stall = Input(Bool())
+        val pred_pipe = Flipped(new BPD_PIPE_Bundle)
         val pred = new IF_BPD_Bundle
         val out = new IF_ID_Bundle
     })
 
     private val pc = Reg(T.Addr, init = Inits.pc)
-    pc := io.pred.npc
+    when (!io.pc_stall) {
+        pc := io.pred.npc
+    }
 
     io.rom.inst_addr := pc
     io.pred.pc := pc
     io.pred.inst := io.rom.inst
 
+    io.out.pred := io.pred_pipe
     io.out.inst := io.rom.inst
     io.out.pc := pc
 }
@@ -109,9 +166,6 @@ class ID extends Module {
         val in = Flipped(new IF_ID_Bundle)
         val out = new ID_EXE_Bundle
         val reg = new RF_Read_Bundle
-        val ctl_exe = Flipped(new CTL_EXE_Bundle)
-        val ctl_mem = Flipped(new CTL_MEM_Bundle)
-        val ctl_wb = Flipped(new CTL_WB_Bundle)
         val rsn = new ID_RSN_Bundle
     })
 
@@ -127,9 +181,11 @@ class ID extends Module {
     io.out.imm := decoder.io.imm
     io.out.rd := decoder.io.rd
 
-    io.out.ctl_exe := io.ctl_exe
-    io.out.ctl_mem := io.ctl_mem
-    io.out.ctl_wb := io.ctl_wb
+    private val ctl = Module(new Control)
+    ctl.io.inst := io.in.inst
+    io.out.ctl_exe := ctl.io.exe
+    io.out.ctl_mem := ctl.io.mem
+    io.out.ctl_wb := ctl.io.wb
 
     io.rsn.rs1 := decoder.io.rs1
     io.rsn.rs2 := decoder.io.rs2
@@ -188,6 +244,7 @@ class EXE extends Module {
         val fwd = Flipped(new FWD_EXE_Bundle)
         val out = new EXE_MEM_Bundle
         val pred = new EXE_BPD_Bundle
+        val hzd = new EXE_HZD_Bundle
     })
 
     // forward select
@@ -242,12 +299,18 @@ class EXE extends Module {
     bru.io.op := io.in.ctl_exe.bru_sel
     bru.io.zero := alu.io.zero
     bru.io.neg := alu.io.neg
+    private val br_fail =
+        io.in.is_br_like & (io.in.pred.br_pred =/= bru.io.should_br)
 
     // output for branch prediction
-    io.pred.br_fail :=
-        io.in.is_br_like & (io.in.pred.br_pred =/= bru.io.should_br)
+    io.pred.br_fail := br_fail
     io.pred.real_npc_offset := io.in.imm
     io.pred.real_npc_base := Mux(io.in.is_jalr, io.in.reg_rs1, io.in.pc)
+
+    // output for hazard
+    io.hzd.br_fail := br_fail
+    io.hzd.is_load := io.in.is_load
+    io.hzd.rd := io.in.rd
 }
 
 class EXE_MEM extends Module {
