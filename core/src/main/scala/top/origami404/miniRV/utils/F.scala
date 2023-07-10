@@ -12,7 +12,7 @@ object F {
         } else {
             val sign_bit = source(source_width - 1).asUInt
             val sign_ext = Fill(target_width - source_width, sign_bit)
-            (sign_ext + source)
+            Cat(sign_ext, source)
         }
     }
 

@@ -337,9 +337,7 @@ class EXE extends Module {
     // output for forwarding
     io.fwd.alu_result := alu.io.result
     io.fwd.rd := io.in.rd
-    io.fwd.valid := 
-        io.in.ctl_wb.rfw_en === C.rfw_en.yes & 
-        io.in.ctl_wb.rfw_sel === C.rfw_sel.alu_result
+    io.fwd.ctl_wb := io.in.ctl_wb
 }
 
 class EXE_MEM extends Module {
@@ -375,9 +373,7 @@ class MEM extends Module {
     io.fwd.alu_result := io.in.result
     io.fwd.rd := io.in.rd
     io.fwd.memr_data := io.bus.rdata
-    io.fwd.valid := 
-        io.in.ctl_wb.rfw_en === C.rfw_en.yes & 
-        io.in.ctl_wb.rfw_sel === C.rfw_sel.memory
+    io.fwd.ctl_wb := io.in.ctl_wb
 }
 
 class MEM_WB extends Module {

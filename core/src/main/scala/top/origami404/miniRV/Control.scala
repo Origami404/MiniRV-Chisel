@@ -235,13 +235,13 @@ class MEM_FWD_Bundle extends Bundle {
     val rd = Output(T.RegNo)
     val alu_result = Output(T.RegNo)
     val memr_data = Output(T.RegNo)
-    val valid = Output(Bool())
+    val ctl_wb = Output(new CTL_WB_Bundle)
 }
 
 class EXE_FWD_Bundle extends Bundle {
     val rd = Output(T.RegNo)
     val alu_result = Output(T.Word)
-    val valid = Output(Bool())
+    val ctl_wb = Output(new CTL_WB_Bundle)
 }
 
 class FWD_ID_Bundle extends Bundle {
@@ -273,10 +273,19 @@ class Forwarder extends Module {
     private val fwd_2 = io.out.reg_rs2
 
     // logic
-    when (exe_rd === rs1 & io.exe.valid) {
+    private val fwd_exe_1 = 
+        exe_rd =/= 0.U & exe_rd === rs1 &
+        io.exe.ctl_wb.rfw_en === C.rfw_en.yes & 
+        io.exe.ctl_wb.rfw_sel === C.rfw_sel.alu_result
+    private val fwd_mem_1 = 
+        mem_rd =/= 0.U & mem_rd === rs1 &
+        io.mem.ctl_wb.rfw_en === C.rfw_en.yes & 
+        io.mem.ctl_wb.rfw_sel === C.rfw_sel.alu_result
+
+    when (fwd_exe_1) {
         fwd_1.valid := true.B
         fwd_1.bits := exe_alu
-    } .elsewhen (mem_rd === rs1 & io.mem.valid) {
+    } .elsewhen (fwd_mem_1) {
         fwd_1.valid := true.B
         fwd_1.bits := Mux(mem_is_load, mem_read, mem_alu)
     } .otherwise {
@@ -284,10 +293,20 @@ class Forwarder extends Module {
         fwd_1.bits := 0.U
     }
 
-    when (exe_rd === rs2 & io.exe.valid) {
+
+    private val fwd_exe_2 = 
+        exe_rd =/= 0.U & exe_rd === rs2 &
+        io.exe.ctl_wb.rfw_en === C.rfw_en.yes & 
+        io.exe.ctl_wb.rfw_sel === C.rfw_sel.alu_result
+    private val fwd_mem_2 =
+        mem_rd =/= 0.U & mem_rd === rs2 &
+        io.mem.ctl_wb.rfw_en === C.rfw_en.yes & 
+        io.mem.ctl_wb.rfw_sel === C.rfw_sel.alu_result
+        
+    when (fwd_exe_2) {
         fwd_2.valid := true.B
         fwd_2.bits := exe_alu
-    } .elsewhen (mem_rd === rs2 & io.mem.valid) {
+    } .elsewhen (fwd_mem_2) {
         fwd_2.valid := true.B
         fwd_2.bits := Mux(mem_is_load, mem_read, mem_alu)
     } .otherwise {
