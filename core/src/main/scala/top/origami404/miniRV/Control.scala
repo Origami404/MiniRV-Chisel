@@ -233,8 +233,8 @@ class BranchPred extends Module {
 class MEM_FWD_Bundle extends Bundle {
     val is_load = Output(Bool())
     val rd = Output(T.RegNo)
-    val alu_result = Output(T.RegNo)
-    val memr_data = Output(T.RegNo)
+    val alu_result = Output(T.Word)
+    val memr_data = Output(T.Word)
     val ctl_wb = Output(new CTL_WB_Bundle)
 }
 
@@ -279,8 +279,7 @@ class Forwarder extends Module {
         io.exe.ctl_wb.rfw_sel === C.rfw_sel.alu_result
     private val fwd_mem_1 = 
         mem_rd =/= 0.U & mem_rd === rs1 &
-        io.mem.ctl_wb.rfw_en === C.rfw_en.yes & 
-        io.mem.ctl_wb.rfw_sel === C.rfw_sel.alu_result
+        io.mem.ctl_wb.rfw_en === C.rfw_en.yes
 
     when (fwd_exe_1) {
         fwd_1.valid := true.B
@@ -300,8 +299,7 @@ class Forwarder extends Module {
         io.exe.ctl_wb.rfw_sel === C.rfw_sel.alu_result
     private val fwd_mem_2 =
         mem_rd =/= 0.U & mem_rd === rs2 &
-        io.mem.ctl_wb.rfw_en === C.rfw_en.yes & 
-        io.mem.ctl_wb.rfw_sel === C.rfw_sel.alu_result
+        io.mem.ctl_wb.rfw_en === C.rfw_en.yes
         
     when (fwd_exe_2) {
         fwd_2.valid := true.B
