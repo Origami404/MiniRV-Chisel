@@ -342,6 +342,7 @@ class EXE extends Module {
     io.fwd.alu_result := alu.io.result
     io.fwd.rd := io.in.rd
     io.fwd.ctl_wb := io.in.ctl_wb
+    io.fwd.have_inst := io.in.debug.have_inst
 }
 
 class EXE_MEM extends Module {
@@ -378,6 +379,7 @@ class MEM extends Module {
     io.fwd.rd := io.in.rd
     io.fwd.memr_data := io.bus.rdata
     io.fwd.ctl_wb := io.in.ctl_wb
+    io.fwd.have_inst := io.in.debug.have_inst
 }
 
 class MEM_WB extends Module {

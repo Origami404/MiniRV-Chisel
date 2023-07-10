@@ -236,12 +236,14 @@ class MEM_FWD_Bundle extends Bundle {
     val alu_result = Output(T.Word)
     val memr_data = Output(T.Word)
     val ctl_wb = Output(new CTL_WB_Bundle)
+    val have_inst = Output(Bool())
 }
 
 class EXE_FWD_Bundle extends Bundle {
     val rd = Output(T.RegNo)
     val alu_result = Output(T.Word)
     val ctl_wb = Output(new CTL_WB_Bundle)
+    val have_inst = Output(Bool())
 }
 
 class FWD_ID_Bundle extends Bundle {
@@ -274,10 +276,12 @@ class Forwarder extends Module {
 
     // logic
     private val fwd_exe_1 = 
+        io.exe.have_inst &
         exe_rd =/= 0.U & exe_rd === rs1 &
         io.exe.ctl_wb.rfw_en === C.rfw_en.yes & 
         io.exe.ctl_wb.rfw_sel === C.rfw_sel.alu_result
     private val fwd_mem_1 = 
+        io.mem.have_inst &
         mem_rd =/= 0.U & mem_rd === rs1 &
         io.mem.ctl_wb.rfw_en === C.rfw_en.yes
 
@@ -294,10 +298,12 @@ class Forwarder extends Module {
 
 
     private val fwd_exe_2 = 
+        io.exe.have_inst &
         exe_rd =/= 0.U & exe_rd === rs2 &
         io.exe.ctl_wb.rfw_en === C.rfw_en.yes & 
         io.exe.ctl_wb.rfw_sel === C.rfw_sel.alu_result
     private val fwd_mem_2 =
+        io.mem.have_inst &
         mem_rd =/= 0.U & mem_rd === rs2 &
         io.mem.ctl_wb.rfw_en === C.rfw_en.yes
         
