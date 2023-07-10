@@ -34,13 +34,11 @@ class EnumWithWidth(width: Int) {
     final val dataT = UInt(w)
 }
 
-object BRUOps extends EnumWithWidth(3) {
+object BRUOps extends EnumWithWidth(4) {
     final var EQ = 0.U(w)
     final var NE = 1.U(w)
     final var GE = 2.U(w)
-    final var GT = 3.U(w)
-    final var LE = 4.U(w)
-    final var LT = 5.U(w)
+    final var LT = 3.U(w)
 }
 
 object ALUOps extends EnumWithWidth(3) {
@@ -78,14 +76,23 @@ object C {
         final val zero  = 2.U(w)
     }
     /** where ALU rhs argument comes from */
-    final object rhs_sel extends EnumWithWidth(1) {
+    final object rhs_sel extends EnumWithWidth(2) {
         final val rs2   = 0.U(w)
         final val imm   = 1.U(w)
+        final val four  = 2.U(w)
     }
     /** whether ALU rhs should be negative first */
     final object rhs_neg extends EnumWithWidth(1) {
         final val no    = 0.U(w)
         final val yes   = 1.U(w)
+    }
+    /** which output of ALU should be used as result of EXE */
+    final object result_sel extends EnumWithWidth(1) {
+        /** use ALU.result */
+        final val result    = 0.U(w)
+        /** use ALU.neg */
+        final val neg_flag  = 1.U(w)
+        // TODO: sltu / sltiu here
     }
     /** whether ALU result should write back to RegFile */
     final object rfw_en extends EnumWithWidth(1) {
@@ -93,11 +100,9 @@ object C {
         final val yes   = 1.U(w)
     }
     /** where RegFile write data comes from */
-    final object rfw_sel extends EnumWithWidth(2) {
+    final object rfw_sel extends EnumWithWidth(1) {
         final val alu_result    = 0.U(w)
-        final val alu_neg_flag  = 1.U(w)
-        final val memory        = 2.U(w)
-        final val pc_next       = 3.U(w)
+        final val memory        = 1.U(w)
     }
     /** whether we should write memory */
     final object memw_en extends EnumWithWidth(1) {

@@ -2,7 +2,7 @@ package top.origami404.miniRV
 
 import Chisel._
 import chisel3.util.ValidIO
-import top.origami404.miniRV.utils.F
+import top.origami404.miniRV.utils.{F, M}
 
 class CTL_PC_Bundle extends Bundle {
     val npc_base_sel = Output(C.npc_base_sel.dataT)
@@ -11,9 +11,11 @@ class CTL_PC_Bundle extends Bundle {
 
 class CTL_EXE_Bundle extends Bundle {
     val alu_sel = Output(ALUOps.dataT)
+    val bru_sel = Output(BRUOps.dataT)
     val lhs_sel = Output(C.lhs_sel.dataT)
     val rhs_sel = Output(C.rhs_sel.dataT)
     val rhs_neg = Output(C.rhs_neg.dataT)
+    val result_sel = Output(C.result_sel.dataT)
 }
 
 class CTL_MEM_Bundle extends Bundle {
@@ -94,6 +96,14 @@ class Control extends Module {
         alu_sel := ALUOps.ADD
     }
 
+    private val bru_sel = io.exe.bru_sel
+    M.mux(bru_sel, 0.U, funct3,
+        0x0.U -> BRUOps.EQ,
+        0x1.U -> BRUOps.NE,
+        0x4.U -> BRUOps.LT,
+        0x5.U -> BRUOps.GE,
+    )
+
     // lhs = Reg[rs1] / pc / 0
     private val lhs_sel = io.exe.lhs_sel
     when (opcode === Opcodes.LUI) {
@@ -108,6 +118,8 @@ class Control extends Module {
     private val rhs_sel = io.exe.rhs_sel
     when (opcode === Opcodes.ARITH || opcode === Opcodes.BRANCH) {
         rhs_sel := C.rhs_sel.rs2
+    } .elsewhen (opcode === Opcodes.JAL || opcode === Opcodes.JALR) {
+        rhs_sel := C.rhs_sel.four
     } .otherwise {
         rhs_sel := C.rhs_sel.imm
     }
@@ -139,6 +151,17 @@ class Control extends Module {
         rhs_neg := C.rhs_neg.no
     }
 
+    private val result_sel = io.exe.result_sel
+    when (opcode === Opcodes.ARITH | opcode === Opcodes.ARITH_IMM) {
+        when (funct3 === 0x2.U) {
+            result_sel := C.result_sel.neg_flag
+        } .otherwise {
+            result_sel := C.result_sel.result
+        }
+    } .otherwise {
+        result_sel := C.result_sel.result
+    }
+
     // ===================== MEM ========================= //
     private val memw_en = io.mem.memw_en
     when (opcode === Opcodes.STORE) {
@@ -158,15 +181,6 @@ class Control extends Module {
     private val rfw_sel = io.wb.rfw_sel
     when (opcode === Opcodes.STORE) {
         rfw_sel := C.rfw_sel.memory
-    } .elsewhen (opcode === Opcodes.ARITH || opcode === Opcodes.ARITH_IMM) {
-        when (is_sltxx) {
-            // slt, sltu
-            rfw_sel := C.rfw_sel.alu_neg_flag
-        } .otherwise {
-            rfw_sel := C.rfw_sel.alu_result
-        }
-    } .elsewhen (opcode === Opcodes.JAL || opcode === Opcodes.JALR) {
-        rfw_sel := C.rfw_sel.pc_next
     } .otherwise {
         rfw_sel := C.rfw_sel.alu_result
     }
