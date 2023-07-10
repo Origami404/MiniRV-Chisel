@@ -90,9 +90,16 @@ object C {
         final val alu_result    = 0.U(w)
         final val memory        = 1.U(w)
     }
-    /** whether we should write memory */
-    final object memw_en extends EnumWithWidth(1) {
+    /** memory I/O width */
+    final object mem_width_sel extends EnumWithWidth(2) {
         final val no    = 0.U(w)
-        final val yes   = 1.U(w)
+        final val byte  = 1.U(w)
+        final val half  = 2.U(w)
+        final val word  = 3.U(w)
+    }
+    /** how we should extend the memory read result */
+    final object memr_sel extends EnumWithWidth(1) {
+        final var sign = 0.U(w)
+        final var zero = 1.U(w)
     }
 }

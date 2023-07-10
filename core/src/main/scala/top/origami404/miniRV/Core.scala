@@ -17,7 +17,7 @@ class InstRAMBundle extends Bundle {
 class BusBundle extends Bundle {
   val addr    = Output(UInt(32.W))
   val rdata   = Input(UInt(32.W))
-  val wen     = Output(Bool())
+  val wen     = Output(UInt(4.W))
   val wdata   = Output(UInt(32.W))
 }
 
@@ -366,20 +366,98 @@ class MEM extends Module {
         val fwd = new MEM_FWD_Bundle
     })
 
-    io.bus.wen := io.in.debug.have_inst & io.in.ctl_mem.memw_en
-    io.bus.addr := io.in.result
-    io.bus.wdata := io.in.memw_data
+    private val data = io.in.memw_data
+
+    private val mem_en = Wire(UInt(4.W))
+    private val byte_raw = Wire(UInt(8.W))
+    private val half_raw = Wire(UInt(16.W))
+
+    private val memr_raw = Wire(UInt(32.W))
+    private val memw_raw = Wire(UInt(32.W))
+
+    private val word_addr = io.in.result & ~"b11".U(T.Word.getWidth.W)
+    private val subword_addr = io.in.result(1, 0)
+    private val mem_width_sel = io.in.ctl_mem.mem_width_sel
+
+    private val byte_sign_ext = F.signExtend(32, byte_raw)
+    private val half_sign_ext = F.signExtend(32, half_raw)
+    private val byte_zero_ext = Cat(0.U(24.W), byte_raw)
+    private val half_zero_ext = Cat(0.U(16.W), half_raw)
+    private val sign_ext = Wire(UInt(32.W))
+    private val zero_ext = Wire(UInt(32.W))
+
+    when (!io.in.debug.have_inst) {
+        mem_en := 0.U
+    } .otherwise {
+        when (mem_width_sel === C.mem_width_sel.byte) {
+            when (subword_addr === 0.U) {
+                mem_en := "b0001".U
+                byte_raw := memr_raw(7, 0)
+                memw_raw := Cat(0.U(24.W), data(7, 0))
+            } .elsewhen (subword_addr === 1.U) {
+                mem_en := "b0010".U
+                byte_raw := memr_raw(15, 8)
+                memw_raw := Cat(0.U(16.W), data(7, 0), 0.U(8.W))
+            } .elsewhen (subword_addr === 2.U) {
+                mem_en := "b0100".U
+                byte_raw := memr_raw(23, 16)
+                memw_raw := Cat(0.U(8.W), data(7, 0), 0.U(16.W))
+            } .otherwise {
+                mem_en := "b1000".U
+                byte_raw := memr_raw(31, 24)
+                memw_raw := Cat(data(7, 0), 0.U(24.W))
+            }
+            sign_ext := byte_sign_ext
+            zero_ext := byte_zero_ext
+        } .elsewhen (mem_width_sel === C.mem_width_sel.half) {
+            when (subword_addr === 0.U) {
+                mem_en := "b0011".U
+                half_raw := memr_raw(15, 0)
+                memw_raw := Cat(0.U(16.W), data(15, 0))
+            } .otherwise {
+                mem_en := "b1100".U
+                half_raw := memr_raw(31, 16)
+                memw_raw := Cat(data(15, 0), 0.U(16.W))
+            }
+            sign_ext := half_sign_ext
+            zero_ext := half_zero_ext
+        } .elsewhen (mem_width_sel === C.mem_width_sel.word) {
+            mem_en := "b1111".U
+            sign_ext := memr_raw
+            zero_ext := memr_raw
+            memw_raw := data
+        } .otherwise {
+            mem_en := 0.U
+            sign_ext := 0.U
+            zero_ext := 0.U
+            memw_raw := 0.U
+        }
+    }
+
+    private val memr_data = Wire(UInt(32.W))
+    M.mux(memr_data, 0.U, io.in.ctl_mem.memr_sel, 
+        C.memr_sel.sign -> sign_ext,
+        C.memr_sel.zero -> zero_ext,
+    )
+
+    // anything other than Load/Store will be given a C.mem_width_sel.no
+    // so they naturally won't be enabled (mem_en === 0.U)
+    io.bus.wen := Mux(io.in.is_load, 0.U, mem_en)
+    io.bus.addr := word_addr
+    io.bus.wdata := memw_raw
+    memr_raw := io.bus.rdata
+
 
     io.out.rd := io.in.rd
     io.out.result := io.in.result
-    io.out.memr_data := io.bus.rdata
+    io.out.memr_data := memr_data
     io.out.ctl_wb := io.in.ctl_wb
     io.out.debug := io.in.debug
 
     io.fwd.is_load := io.in.debug.have_inst & io.in.is_load
     io.fwd.alu_result := io.in.result
     io.fwd.rd := io.in.rd
-    io.fwd.memr_data := io.bus.rdata
+    io.fwd.memr_data := memr_data
     io.fwd.ctl_wb := io.in.ctl_wb
     io.fwd.have_inst := io.in.debug.have_inst
 }

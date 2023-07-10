@@ -14,7 +14,8 @@ class CTL_EXE_Bundle extends Bundle {
 }
 
 class CTL_MEM_Bundle extends Bundle {
-    val memw_en = Output(C.memw_en.dataT)
+    val mem_width_sel = Output(C.mem_width_sel.dataT)
+    val memr_sel = Output(C.memr_sel.dataT)
 }
 
 class CTL_WB_Bundle extends Bundle {
@@ -126,11 +127,30 @@ class Control extends Module {
     }
 
     // ===================== MEM ========================= //
-    private val memw_en = io.mem.memw_en
-    when (opcode === Opcodes.STORE) {
-        memw_en := C.memw_en.yes
+    private val mem_width_sel = io.mem.mem_width_sel
+    when (opcode === Opcodes.STORE || opcode === Opcodes.LOAD) {
+        when (funct3 === 0x0.U || funct3 === 0x4.U) {
+            mem_width_sel := C.mem_width_sel.byte
+        } .elsewhen (funct3 === 0x1.U || funct3 === 0x5.U) {
+            mem_width_sel := C.mem_width_sel.half
+        } .elsewhen (funct3 === 0x2.U) {
+            mem_width_sel := C.mem_width_sel.word
+        } .otherwise {
+            mem_width_sel := C.mem_width_sel.no
+        }
     } .otherwise {
-        memw_en := C.memw_en.no
+        mem_width_sel := C.mem_width_sel.no
+    }
+
+    private val memr_sel = io.mem.memr_sel
+    when (opcode === Opcodes.LOAD) {
+        when (funct3 === 0x4.U || funct3 === 0x5.U) {
+            memr_sel := C.memr_sel.zero
+        } .otherwise {
+            memr_sel := C.memr_sel.sign
+        }
+    } .otherwise {
+        memr_sel := C.memr_sel.sign
     }
 
     // ===================== WB ========================= //
