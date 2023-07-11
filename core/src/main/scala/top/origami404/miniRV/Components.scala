@@ -152,12 +152,12 @@ class BRU extends Module {
     })
 
     import BRUOps._
-    M.mux(io.should_br, false.B, io.op, 
+    io.should_br := MuxLookup(io.op, false.B, Seq( 
         EQ -> io.eq,
         NE -> !io.eq,
         GE -> !io.lti,
         LT -> io.lti,
         GEU -> !io.ltu,
         LTU -> io.ltu
-    )
+    ))
 }

@@ -279,24 +279,24 @@ class EXE extends Module {
 
     // lhs/rhs/-rhs select
     private val lhs = Wire(T.Word)
-    M.mux(lhs, 0.U, io.in.ctl_exe.lhs_sel, 
+    lhs := MuxLookup(io.in.ctl_exe.lhs_sel, 0.U, Seq( 
         C.lhs_sel.pc -> io.in.pc,
         C.lhs_sel.rs1 -> io.in.reg_rs1,
         C.lhs_sel.zero -> 0.U
-    )
+    ))
     
     private val rhs_raw = Wire(T.Word)
-    M.mux(rhs_raw, 0.U, io.in.ctl_exe.rhs_sel,
+    rhs_raw := MuxLookup(io.in.ctl_exe.rhs_sel, 0.U, Seq(
         C.rhs_sel.imm -> io.in.imm,
         C.rhs_sel.rs2 -> io.in.reg_rs2,
         C.rhs_sel.four -> 4.U
-    )
+    ))
     
     private val rhs = Wire(T.Word)
-    M.mux(rhs, 0.U, io.in.ctl_exe.rhs_neg,
+    rhs := MuxLookup(io.in.ctl_exe.rhs_neg, 0.U, Seq(
         C.rhs_neg.no -> rhs_raw,
         C.rhs_neg.yes -> F.tcNeg(rhs_raw)
-    )
+    ))
     
     // alu
     private val alu = Module(new ALU)
@@ -305,11 +305,11 @@ class EXE extends Module {
     alu.io.arg_2 := rhs
 
     private val result = Wire(T.Word)
-    M.mux(result, 0.U, io.in.ctl_exe.result_sel,
+    result := MuxLookup(io.in.ctl_exe.result_sel, 0.U, Seq(
         C.result_sel.result -> alu.io.result,
         C.result_sel.lti_flag -> Cat(0.U(T.Word.getWidth - 1), alu.io.lti.asUInt),
         C.result_sel.ltu_flag -> Cat(0.U(T.Word.getWidth - 1), alu.io.ltu.asUInt)
-    )
+    ))
 
     // output for data path
     io.out.is_load := io.in.is_load
@@ -435,10 +435,10 @@ class MEM extends Module {
     }
 
     private val memr_data = Wire(UInt(32.W))
-    M.mux(memr_data, 0.U, io.in.ctl_mem.memr_sel, 
+    memr_data := MuxLookup(io.in.ctl_mem.memr_sel, 0.U, Seq( 
         C.memr_sel.sign -> sign_ext,
         C.memr_sel.zero -> zero_ext,
-    )
+    ))
 
     // anything other than Load/Store will be given a C.mem_width_sel.no
     // so they naturally won't be enabled (mem_en === 0.U)
@@ -483,10 +483,10 @@ class WB extends Module {
     io.reg.enable := 
         io.in.debug.have_inst & (io.in.ctl_wb.rfw_en === C.rfw_en.yes)
     io.reg.addr := io.in.rd
-    M.mux(io.reg.data, 0.U, io.in.ctl_wb.rfw_sel,
+    io.reg.data := MuxLookup(io.in.ctl_wb.rfw_sel, 0.U, Seq(
         C.rfw_sel.alu_result -> io.in.result,
         C.rfw_sel.memory -> io.in.memr_data
-    )
+    ))
 
     io.debug := io.in.debug
 }

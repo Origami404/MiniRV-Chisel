@@ -75,14 +75,14 @@ class Control extends Module {
     }
 
     private val bru_sel = io.exe.bru_sel
-    M.mux(bru_sel, 0.U, funct3,
+    bru_sel := MuxLookup(funct3, 0.U, Seq(
         0x0.U -> BRUOps.EQ,
         0x1.U -> BRUOps.NE,
         0x4.U -> BRUOps.LT,
         0x5.U -> BRUOps.GE,
         0x6.U -> BRUOps.LTU,
         0x7.U -> BRUOps.GEU
-    )
+    ))
 
     // lhs = Reg[rs1] / pc / 0
     private val lhs_sel = io.exe.lhs_sel
