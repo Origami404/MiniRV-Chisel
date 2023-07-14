@@ -344,3 +344,6 @@ hs_err_pid*
 .metals
 .bloop
 project
+
+vivado/*
+!vivado/proj_pipeline.srcs/sources_1/new/miniRV_SoC.v

@@ -375,7 +375,7 @@ class MEM extends Module {
     private val memr_raw = Wire(UInt(32.W))
     private val memw_raw = Wire(UInt(32.W))
 
-    private val word_addr = io.in.result & ~"b11".U(T.Word.getWidth.W)
+    private val word_addr = io.in.result & (~"b11".U(T.Word.getWidth.W)).asUInt
     private val subword_addr = io.in.result(1, 0)
     private val mem_width_sel = io.in.ctl_mem.mem_width_sel
 

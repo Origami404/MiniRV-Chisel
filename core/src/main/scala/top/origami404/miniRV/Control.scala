@@ -61,7 +61,6 @@ class Control extends Module {
                 alu_sel := ALUOps.SRA
             }
         } .otherwise {
-            // TODO: slt(i), sltu(i)
             alu_sel := ALUOps.ADD
         }
     } .otherwise {
