@@ -148,7 +148,7 @@ class Bridge(ranges: Seq[(BigInt, BigInt)]) extends Module {
 
     io.devices.zipWithIndex.foreach { case (b, i) =>
         b.addr := addr
-        b.wen := within_range(i) & io.cpu.wen
+        b.wen := Fill(4, within_range(i)) & io.cpu.wen
         b.wdata := io.cpu.wdata
     }
     io.cpu.rdata := Mux1H(within_range, io.devices.map(_.rdata))

@@ -53,14 +53,17 @@ class DigDecoder extends Module {
 
 class CycleShiftRegister(width: Int) extends Module {
     val io = IO(new Bundle {
+        val next = Input(Bool())
         val out = Output(UInt(width.W))
     })
 
     private val reg = RegInit(UInt(width.W), 1.U)
-    when(reg(width - 1) === 1.U) {
-        reg := 1.U
-    }.otherwise {
-        reg := reg << 1
+    when (io.next) {
+        when(reg(width - 1) === 1.U) {
+            reg := 1.U
+        }.otherwise {
+            reg := reg << 1
+        }
     }
 
     io.out := reg
@@ -81,9 +84,19 @@ class SevenSegDigital extends Module {
         }
     }
 
+    private val counter = RegInit(T.Word, 0.U)
+    private val counter_reach = counter === 100000.U
+    when (counter_reach) {
+        counter := 0.U
+    } .otherwise {
+        counter := counter + 1.U
+    }
+
     private val enable_reg = Module(new CycleShiftRegister(8))
+    enable_reg.io.next := counter_reach
+
     private val led_en = enable_reg.io.out
-    io.led_enable := led_en
+    io.led_enable := ~led_en
 
     private val reg_bits = reg.asUInt
     private val decoder = Module(new DigDecoder)
