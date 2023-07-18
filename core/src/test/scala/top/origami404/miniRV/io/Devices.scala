@@ -35,8 +35,8 @@ class SevenSegDigitalTest extends AnyFlatSpec
 
     it should "show the in input content" in {
         test(new SevenSegDigital) { c =>
-            c.io.input.valid.poke(true.B)
-            c.io.input.bits.poke("h87654321".U)
+            c.io.input_en.poke("hF".U)
+            c.io.input.poke("h87654321".U)
             // don't know why, the first cycle is unstable
             c.clock.step(8)
             for (cnt <- 1 to 10) {
@@ -47,7 +47,7 @@ class SevenSegDigitalTest extends AnyFlatSpec
                 }
             }
 
-            c.io.input.bits.poke("h12345678".U)
+            c.io.input.poke("h12345678".U)
             c.clock.step(8)
             for (cnt <- 1 to 10) {
                 for (i <- 1 to 8) {

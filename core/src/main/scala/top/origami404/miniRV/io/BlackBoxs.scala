@@ -16,7 +16,14 @@ class DistributedSinglePortRAM(depth: Int, data_width: Int) extends BlackBox {
 class DistributedSinglePortROM(depth: Int, data_width: Int) extends BlackBox {
     val io = IO(new Bundle {
         val a = Input(UInt(log2Ceil(depth).W))
-        val spo = Output(data_width.W)
+        val spo = Output(UInt(data_width.W))
     })
 }
 
+class PLL extends BlackBox {
+    val io = IO(new Bundle {
+        val clk_in1 = Input(Clock())
+        val clk_out1 = Output(Clock())
+        val locked = Output(Bool())
+    })
+}
