@@ -75,6 +75,7 @@ class SoC extends Module {
         for (i <- 0 until 4) {
             val sub_ram = drams(i)
             val sub = ram.io.subs(i)
+            sub_ram.io.clk := cpu_clock
             sub_ram.io.a := sub.addr
             sub_ram.io.d := sub.write_data
             sub_ram.io.we := sub.write_enable
@@ -82,7 +83,7 @@ class SoC extends Module {
         }
         val ram_self = ram.io.self
         // manually fix the data segment offset in program
-        ram_self.addr := (bus0.addr - "h4000".U)(15, 2)
+        ram_self.addr := (bus0.addr - "h4000".U(32.W))(15, 2)
         ram_self.write_enable := bus0.wen
         ram_self.write_data := bus0.wdata
         bus0.rdata := ram_self.read_data
