@@ -219,39 +219,42 @@ class ID extends Module {
     })
 
     // untouched signals
-    io.out.pred := io.in.pred
+    io.out.pred  := io.in.pred
+    io.out.pc    := io.in.pc
+    io.out.debug := io.in.debug
 
+    // instruction decode
     private val decoder = Module(new InstDecoder)
     decoder.io.inst := io.in.inst
+
+    io.rsn.rs1 := decoder.io.rs1
+    io.rsn.rs2 := decoder.io.rs2
+    io.out.imm     := decoder.io.imm
+    io.out.rd      := decoder.io.rd
 
     io.reg.addr_1 := decoder.io.rs1
     io.reg.addr_2 := decoder.io.rs2
 
+    io.out.is_load := decoder.io.is_load
+    io.out.is_br   := decoder.io.is_br
+    io.out.is_jal  := decoder.io.is_jal
+    io.out.is_jalr := decoder.io.is_jalr
+
+    // forwarding select
     private val reg_rs1 =
         Mux(io.fwd.reg_rs1.valid, io.fwd.reg_rs1.bits, io.reg.data_1)
     private val reg_rs2 =
         Mux(io.fwd.reg_rs2.valid, io.fwd.reg_rs2.bits, io.reg.data_2)
 
-    io.out.pc := io.in.pc
     io.out.reg_rs1 := reg_rs1
     io.out.reg_rs2 := reg_rs2
-    io.out.imm := decoder.io.imm
-    io.out.rd := decoder.io.rd
-    io.out.debug := io.in.debug
 
-    io.out.is_load := decoder.io.is_load
-    io.out.is_br := decoder.io.is_br
-    io.out.is_jal := decoder.io.is_jal
-    io.out.is_jalr := decoder.io.is_jalr
-
+    // control signals
     private val ctl = Module(new Control)
-    ctl.io.inst := io.in.inst
+    ctl.io.inst    := io.in.inst
     io.out.ctl_exe := ctl.io.exe
     io.out.ctl_mem := ctl.io.mem
-    io.out.ctl_wb := ctl.io.wb
-
-    io.rsn.rs1 := decoder.io.rs1
-    io.rsn.rs2 := decoder.io.rs2
+    io.out.ctl_wb  := ctl.io.wb
 }
 
 class ID_EXE extends Module {
@@ -281,6 +284,13 @@ class EXE extends Module {
         val hzd = new EXE_HZD_Bundle
         val fwd = new EXE_FWD_Bundle
     })
+
+    // untouched signals
+    io.out.rd        := io.in.rd
+    io.out.is_load   := io.in.is_load
+    io.out.ctl_wb    := io.in.ctl_wb
+    io.out.ctl_mem   := io.in.ctl_mem
+    io.out.debug     := io.in.debug
 
     // lhs/rhs/-rhs select
     private val lhs = Wire(T.Word)
@@ -317,13 +327,8 @@ class EXE extends Module {
     ))
 
     // output for data path
-    io.out.is_load := io.in.is_load
-    io.out.rd := io.in.rd
-    io.out.result := result
+    io.out.result    := result
     io.out.memw_data := io.in.reg_rs2
-    io.out.ctl_wb := io.in.ctl_wb
-    io.out.ctl_mem := io.in.ctl_mem
-    io.out.debug := io.in.debug
 
     // bru
     private val bru = Module(new BRU)
@@ -355,13 +360,13 @@ class EXE extends Module {
     // output for hazard
     io.hzd.br_fail := br_fail
     io.hzd.is_load := io.in.is_load
-    io.hzd.rd := io.in.rd
+    io.hzd.rd      := io.in.rd
 
     // output for forwarding
     io.fwd.alu_result := result
-    io.fwd.rd := io.in.rd
-    io.fwd.ctl_wb := io.in.ctl_wb
-    io.fwd.have_inst := io.in.debug.have_inst
+    io.fwd.rd         := io.in.rd
+    io.fwd.ctl_wb     := io.in.ctl_wb
+    io.fwd.have_inst  := io.in.debug.have_inst
 }
 
 class EXE_MEM extends Module {
@@ -382,6 +387,12 @@ class MEM extends Module {
         val out = new MEM_WB_Bundle
         val fwd = new MEM_FWD_Bundle
     })
+
+    // untouched signals
+    io.out.rd := io.in.rd
+    io.out.result := io.in.result
+    io.out.ctl_wb := io.in.ctl_wb
+    io.out.debug := io.in.debug
 
     private val data = io.in.memw_data
 
@@ -459,24 +470,19 @@ class MEM extends Module {
 
     // anything other than Load/Store will be given a C.mem_width_sel.no
     // so they naturally won't be enabled (mem_en === 0.U)
-    io.bus.wen := Mux(io.in.is_load, 0.U, mem_en)
-    io.bus.addr := word_addr
+    io.bus.wen   := Mux(io.in.is_load, 0.U, mem_en)
+    io.bus.addr  := word_addr
     io.bus.wdata := memw_raw
-    memr_raw := io.bus.rdata
+    memr_raw     := io.bus.rdata
 
-
-    io.out.rd := io.in.rd
-    io.out.result := io.in.result
     io.out.memr_data := memr_data
-    io.out.ctl_wb := io.in.ctl_wb
-    io.out.debug := io.in.debug
 
-    io.fwd.is_load := io.in.debug.have_inst & io.in.is_load
+    io.fwd.is_load    := io.in.debug.have_inst & io.in.is_load
     io.fwd.alu_result := io.in.result
-    io.fwd.rd := io.in.rd
-    io.fwd.memr_data := memr_data
-    io.fwd.ctl_wb := io.in.ctl_wb
-    io.fwd.have_inst := io.in.debug.have_inst
+    io.fwd.rd         := io.in.rd
+    io.fwd.memr_data  := memr_data
+    io.fwd.ctl_wb     := io.in.ctl_wb
+    io.fwd.have_inst  := io.in.debug.have_inst
 }
 
 class MEM_WB extends Module {

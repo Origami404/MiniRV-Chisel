@@ -64,7 +64,7 @@ class SoC extends Module {
         val bus0 = bridge.io.devices(0)
         val ram = Module(new InterleavedDRAM(new DRAM_Bundle(14, 4, 32)))
 
-        // fuck Vivado's IP Core
+        // f**k Vivado's IP Core
         val dram0 = Module(new DRAM0)
         val dram1 = Module(new DRAM1)
         val dram2 = Module(new DRAM2)
