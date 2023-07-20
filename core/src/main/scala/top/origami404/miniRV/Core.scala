@@ -114,7 +114,8 @@ class ID_EXE_Bundle extends Bundle {
     val rd = Output(T.RegNo)
     val is_load = Output(Bool())
     /** bxx, jal(r) -> true */
-    val is_br_like = Output(Bool())
+    val is_br = Output(Bool())
+    val is_jal = Output(Bool())
     val is_jalr = Output(Bool())
 
     val reg_rs1 = Output(T.Word)
@@ -217,6 +218,9 @@ class ID extends Module {
         val rsn = new ID_RSN_Bundle
     })
 
+    // untouched signals
+    io.out.pred := io.in.pred
+
     private val decoder = Module(new InstDecoder)
     decoder.io.inst := io.in.inst
 
@@ -236,7 +240,8 @@ class ID extends Module {
     io.out.debug := io.in.debug
 
     io.out.is_load := decoder.io.is_load
-    io.out.is_br_like := decoder.io.is_br_like
+    io.out.is_br := decoder.io.is_br
+    io.out.is_jal := decoder.io.is_jal
     io.out.is_jalr := decoder.io.is_jalr
 
     private val ctl = Module(new Control)
@@ -326,9 +331,21 @@ class EXE extends Module {
     bru.io.eq := alu.io.eq
     bru.io.lti := alu.io.lti
     bru.io.ltu := alu.io.ltu
-    private val br_fail =
-        io.in.debug.have_inst &
-        io.in.is_br_like & ((io.in.pred.br_pred =/= bru.io.should_br) || io.in.is_jalr)
+
+    private val br_fail = Wire(Bool())
+    when (io.in.debug.have_inst) {
+        when (io.in.is_br) {
+            br_fail := bru.io.should_br =/= io.in.pred.br_pred
+        } .elsewhen (io.in.is_jal) {
+            br_fail := false.B
+        } .elsewhen (io.in.is_jalr) {
+            br_fail := true.B
+        } .otherwise {
+            br_fail := false.B
+        }
+    } .otherwise {
+        br_fail := false.B
+    }
 
     // output for branch prediction
     io.pred.br_fail := br_fail

@@ -15,7 +15,8 @@ class InstDecoder extends Module {
         val imm     = Output(T.Word)
 
         val is_load    = Output(Bool())
-        val is_br_like = Output(Bool())
+        val is_br      = Output(Bool())
+        val is_jal     = Output(Bool())
         val is_jalr    = Output(Bool())
     })
 
@@ -50,7 +51,8 @@ class InstDecoder extends Module {
         io.imm := 0.U(32.W)
     }
 
-    io.is_br_like := is_B | opcode === Opcodes.JAL | opcode === Opcodes.JALR
+    io.is_br := is_B
+    io.is_jal := opcode === Opcodes.JAL
     io.is_jalr := opcode === Opcodes.JALR
     io.is_load := opcode === Opcodes.LOAD
 }
