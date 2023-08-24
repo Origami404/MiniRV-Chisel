@@ -1,4 +1,4 @@
-# miniRV
+# MiniRV-Chisel
 
 > 为了防止实验指导书年年更新, 当年的实验指导书仓库 fork [在此]()
 
