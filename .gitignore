@@ -347,3 +347,13 @@ project
 
 vivado/*
 !vivado/proj_pipeline.srcs/sources_1/new/miniRV_SoC.v
+
+# Trace files
+trace/mySoC/miniRV_SoC.v
+trace/obj_dir
+trace/waveform
+trace/mycpu/*
+trace/meminit.bin
+trace/.cache
+trace/compile_commands.json
+trace/mySoC/CPUCore.v
