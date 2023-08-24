@@ -1,6 +1,6 @@
 # MiniRV-Chisel
 
-> 为了防止实验指导书年年更新, 当年的实验指导书仓库 fork [在此]()
+> 为了防止实验指导书年年更新, 当年的实验指导书仓库 fork [在此](https://github.com/Origami404/cpu-guide-2023-fork)
 
 本项目为本人的 [2023 年学校 CPU 设计课程](https://hitsz-cslab.gitee.io/cpu/) 的实验, 实现了一个简单的 RV32I CPU, 功能如下:
 
